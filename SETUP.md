@@ -5,13 +5,12 @@ last updated: 2023/10/20
 
 ### 1. Got a LINE Bot API devloper account
 
-- [Make sure you already registered on LINE developer console](https://developers.line.biz/console/), if you need use LINE Bot.
-
-- Create new Messaging Channel
-- Get `Channel Secret` on "Basic Setting" tab.
-- Issue `Channel Access Token` on "Messaging API" tab.
-- Open LINE OA manager from "Basic Setting" tab.
-- Go to `回應設定` on OA manager, enable "webhook, and may be disable `自動回應功能`.
+- Register on [LINE developer console](https://developers.line.biz/console/).
+- Create new `Messaging Channel`.
+- Get `Channel Secret` on `Basic Setting` tab.
+- Press the button `Issue` to get `Channel Access Token` on `Messaging API` tab.
+- Open `LINE Official Account manager` from "Basic Setting" tab.
+- Go to `回應設定` in `LINE Official Account manager`, enable `Webhook`, and disable `自動回應功能`.
 - For our chatbot, we need to join groups. Go to `帳號設定`, `功能切換`, enable `加入群組或多人聊天室`.
 
 ### 2. Obtain an OpenAI API token
@@ -20,13 +19,13 @@ last updated: 2023/10/20
 
 ### 3. Set environment variables
 
-- Rename `.env.sample` to `.env `then filled all blank.
+- Copy `.env.sample` to `.env `then filled all blank.
 - `API_ENV`: The environment of the application, can be 'production' or 'develop', default is develop.
 - `LOG`: The level of logging, such as 'WARNING', 'INFO', 'DEBUG', etc.
 - `LINE_CHANNEL_ACCESS_TOKEN`: From step 1 in the `Messaging API` tab.
 - `LINE_CHANNEL_SECRET`: From step 1 in the `Basic Setting` tab.
 - `OPENAI_API_KEY`: From step 2.
-- `PORT`: default 8080.
+- `PORT`: default is 8080.
 
 ### 4. Run the program
 
@@ -34,6 +33,13 @@ last updated: 2023/10/20
     ``` bash
     conda create --name ENV_NAME python==3.11.4
     conda activate ENV_NAME
+    pip install -r requirements.txt
+    ```
+- Or using venv. (You might use git bash on Windows)
+    ``` bash
+    python -m venv ENV_NAME
+    source ENV_NAME/Scripts/activate
+    pip install -r requirements.txt
     ```
 - Run the program.
     ``` bash
