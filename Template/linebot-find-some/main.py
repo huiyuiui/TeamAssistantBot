@@ -29,6 +29,7 @@ from linebot.v3.webhooks import (
 from stock_peformace import StockPercentageChangeTool, StockGetBestPerformingTool
 from stock_price import StockPriceTool
 from langchain.schema import HumanMessage
+from langchain.schema import SystemMessage
 from langchain.agents import initialize_agent, Tool
 from langchain.agents import AgentType
 from langchain.chat_models import ChatOpenAI
@@ -61,11 +62,15 @@ parser = WebhookParser(channel_secret)
 
 # Langchain (you must use 0613 model to use OpenAI functions.)
 model = ChatOpenAI(model="gpt-3.5-turbo-0613")
+# This section might be the function class
 tools = [
     StockPriceTool(), StockPercentageChangeTool(),
     StockGetBestPerformingTool(), FindYoutubeVideoTool(),
     WikiTool()
 ]
+system_message = SystemMessage(content="""
+                                如果回答有出現中文，你傾向使用繁體中文回答問題。
+                                """)
 open_ai_agent = initialize_agent(
     tools,
     model,
@@ -97,15 +102,16 @@ async def handle_callback(request: Request):
         #     messages=[TextMessage(text=event.message.text,
         #                           quoteToken=event.message.quote_token)],
         # ))
+        line_bot_name = "小助手"
+        if f"{line_bot_name}" in event.message.text:
+            tool_result = open_ai_agent.run(event.message.text)
 
-        tool_result = open_ai_agent.run(event.message.text)
-
-        await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=tool_result)]
+            await line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=tool_result)]
+                )
             )
-        )
 
     return 'OK'
 
