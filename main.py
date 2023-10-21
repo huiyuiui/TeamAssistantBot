@@ -39,6 +39,7 @@ from summarizer import SummarizeTool
 
 import csv
 from datetime import datetime
+from collections import deque
 
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
@@ -127,20 +128,26 @@ async def handle_callback(request: Request):
     return 'OK'
 
 async def write_message(event):
+    root = f"messages/message_content_{event.source.group_id}.txt"
+    with open(root, 'r', encoding="utf-8") as f:
+        messages = f.readlines()
+        message_queue = deque(messages, maxlen=25)
+
     if event.message.type != "text":
         return
     elif event.message.text.find("森森") != -1:
         return
-    root = f"messages/message_content_{event.source.group_id}.txt"
+
 
     currentDateAndTime = datetime.now()
     currentTime = currentDateAndTime.strftime("%H:%M")
     profile = await line_bot_api.get_profile(event.source.user_id)
 
-    message_str = str(currentTime) + ' ' + profile.display_name + ':' + event.message.text
+    message_str = str(currentTime) + ' ' + profile.display_name + ':' + event.message.text +'\n'
+    message_queue.append(message_str)
+    with open(root, 'w', encoding="utf-8") as f:
+        f.writelines(message_queue)
 
-    with open(root, 'a', encoding="utf-8") as f:
-        f.write(message_str + '\n')
     
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', default=8080))
