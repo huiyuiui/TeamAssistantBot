@@ -78,7 +78,7 @@ parser = WebhookParser(channel_secret)
 # Langchain (you must use 0613 model to use OpenAI functions.)
 model = ChatOpenAI(model="gpt-3.5-turbo-0613")
 tools = [
-    SearchInfoTool(), WikiTool(), 
+    SearchInfoTool(), WikiTool(), MeetingTool(),
     SummarizeTool(), FindYoutubeVideoTool(),
     ScheduleTool(), CalendarTool(), TodoListTool()
 ]
