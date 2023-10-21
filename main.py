@@ -74,7 +74,7 @@ open_ai_agent = initialize_agent(
 
 # collect previous message
 message_list = []
-
+received_data = []
 @app.post("/webhooks/line")
 async def handle_callback(request: Request):
     global message_list
@@ -169,6 +169,7 @@ async def handle_callback(request: Request):
 # get web data
 @app.post("/submit")
 async def submit(request: Request):
+    global received_data
     data = await request.form()
     print(f"raw data: {data}")
     received_data.append(data["data"])
