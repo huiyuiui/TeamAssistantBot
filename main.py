@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-
+import re
 if os.getenv('API_ENV') != 'production':
     from dotenv import load_dotenv
 
@@ -16,7 +16,8 @@ from linebot.v3.messaging import (
     Configuration,
     ReplyMessageRequest,
     PushMessageRequest,
-    TextMessage
+    TextMessage,
+    ImageMessage
 )
 from linebot.v3.exceptions import (
     InvalidSignatureError
@@ -29,11 +30,14 @@ from linebot.v3.webhooks import (
 from stock_peformace import StockPercentageChangeTool, StockGetBestPerformingTool
 from stock_price import StockPriceTool
 from langchain.schema import HumanMessage
+from langchain.schema import SystemMessage
 from langchain.agents import initialize_agent, Tool
 from langchain.agents import AgentType
 from langchain.chat_models import ChatOpenAI
 from wikipedia import WikiTool
 from youtube_restaurant import FindYoutubeVideoTool
+from google_calendar import CalendarTool
+from schedule import ScheduleTool
 from search_info import SearchInfoTool
 from summarizer import SummarizeTool
 
@@ -41,6 +45,7 @@ import csv
 from datetime import datetime
 from collections import deque
 
+from imgurpython import ImgurClient
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
 
@@ -68,14 +73,20 @@ parser = WebhookParser(channel_secret)
 # Langchain (you must use 0613 model to use OpenAI functions.)
 model = ChatOpenAI(model="gpt-3.5-turbo-0613")
 tools = [
+    StockPriceTool(), StockPercentageChangeTool(),
+    StockGetBestPerformingTool(), FindYoutubeVideoTool(),
+    WikiTool(), CalendarTool(), ScheduleTool(),
     SummarizeTool(), SearchInfoTool()
-]#  WikiTool(), StockPriceTool(), StockPercentageChangeTool(),
- #   StockGetBestPerformingTool(), FindYoutubeVideoTool(),
+]
+system_message = SystemMessage(content="""
+                                如果回答有出現中文，你傾向使用繁體中文回答問題。
+                                """)
 open_ai_agent = initialize_agent(
     tools,
     model,
     agent=AgentType.OPENAI_FUNCTIONS,
-    verbose=False)
+    verbose=False,
+    agent_kwargs={"system_message": system_message},)
 
 
 @app.post("/webhooks/line")
