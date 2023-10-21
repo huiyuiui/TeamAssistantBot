@@ -77,9 +77,9 @@ parser = WebhookParser(channel_secret)
 # Langchain (you must use 0613 model to use OpenAI functions.)
 model = ChatOpenAI(model="gpt-3.5-turbo-0613")
 tools = [
-    TodoListTool(), ScheduleTool(), CalendarTool(), 
     SearchInfoTool(), WikiTool(), 
     SummarizeTool(), FindYoutubeVideoTool(),
+    ScheduleTool(), CalendarTool(), TodoListTool()
 ]
 system_message = SystemMessage(content="""
                                你叫做森森，你是一隻貓，你會友善的回覆使用者的任何問題，
@@ -182,7 +182,7 @@ async def handle_callback(request: Request):
         #                           quoteToken=event.message.quote_token)],
         # ))
 
-        # Record message
+        # Record message(can only be used in group)
         if event.type == "message":
             await write_message(event)
 
