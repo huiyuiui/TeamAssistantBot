@@ -37,6 +37,7 @@ from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from langchain.agents import initialize_agent, Tool
 from langchain.agents import AgentType
 from langchain.chat_models import ChatOpenAI
+from mood_tool import MoodAnalyzerTool
 
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
@@ -63,7 +64,7 @@ parser = WebhookParser(channel_secret)
 
 # Langchain (you must use 0613 model to use OpenAI functions.)
 model = ChatOpenAI(model="gpt-3.5-turbo-0613")
-tools = [ ]
+tools = [MoodAnalyzerTool() ]
 system_message = SystemMessage(content=""" 如果回答裡出現中文，你傾向使用繁體中文回答問題。 """)
 open_ai_agent = initialize_agent(
     tools,
@@ -177,11 +178,15 @@ async def submit(request: Request):
     print(f'id: {groupId}')
     print("Received message: ", received_data)
     # send a push message to the group
-    await line_bot_api.push_message(push_message_request=PushMessageRequest(
+    tool_result = open_ai_agent.run(received_data)
+    from mood_tool import _output
+    print(f"mood result: {_output['mood']}")
+    print(f"packageId: {_output['packageId']}, stickerId: {_output['stickerId']}")
+    await line_bot_api.push_message(PushMessageRequest(
         to=groupId,
-        messages=[TextMessage(text=msg) for msg in received_data]
+        messages=[TextMessage(text=received_data[0]), StickerMessage(package_id=_output["packageId"], sticker_id=_output["stickerId"])]
     ))
-    received_data = []
+    received_data = received_data[1:]
     html_content = """
         <!DOCTYPE html>
         <html>
