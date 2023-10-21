@@ -44,6 +44,7 @@ from google_calendar import CalendarTool
 from schedule import ScheduleTool
 from search_info import SearchInfoTool
 from summarizer import SummarizeTool
+from meeting_arangement import MeetingTool
 
 from time import time
 from datetime import datetime
@@ -196,13 +197,31 @@ async def handle_callback(request: Request):
                     messages = f.readlines()
                     print(messages)
                     tool_result = open_ai_agent.run(messages)
+                    with open(root, 'w', encoding="utf-8") as f:
+                        f.write("") 
                     await line_bot_api.reply_message(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
                             messages=[TextMessage(text=tool_result)]
                         )
                     )
-            
+
+            elif "什麼時候開會" in event.message.text or "when to meet" in event.message.text:
+                print("MEET")
+                root = f"messages/message_content_{event.source.group_id}.txt"
+                with open(root, 'r', encoding="utf-8") as f:
+                    messages = f.readlines()
+                    print(messages)
+                    tool_result = open_ai_agent.run(messages)
+                    with open(root, 'w', encoding="utf-8") as f:
+                        f.write("") 
+                    print(tool_result)
+                    await line_bot_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=tool_result)]
+                        )
+                    )
             else:
                 tool_result = open_ai_agent.run(event.message.text)
                 
