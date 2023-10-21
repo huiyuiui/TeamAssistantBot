@@ -2,53 +2,52 @@
 <html>
 <head>
 <style>
-    /* 將表單居中並使其直式顯示 */
     body {
         display: flex;
         justify-content: center;
         align-items: center;
         height: 100vh;
         margin: 0;
-        background-color: #f0f0f0; /* 背景顏色 */
+        background-color: #f0f0f0;
     }
     
     form {
         text-align: center;
-        font-size: 4vw; /* 調整字體大小相對於視口寬度，根據需要進行更改 */
-        max-width: 80%; /* 控制表單最大寬度 */
-        background-color: #fff; /* 表單背景顏色 */
+        font-size: 4vw; 
+        max-width: 80%; 
+        background-color: #fff;
         padding: 20px;
-        border-radius: 10px; /* 圓角邊框 */
+        border-radius: 10px; 
     }
     
     label {
-        display: block; /* 每個標籤疊放顯示 */
+        display: block; 
         margin: 10px 0;
     }
     
     input[type="text"] {
         width: 100%;
         padding: 10px;
-        font-size: 4vw; /* 調整文字框字體大小 */
-        border: 1px solid #ccc; /* 邊框顏色 */
-        border-radius: 5px; /* 圓角邊框 */
+        font-size: 4vw; 
+        border: 1px solid #ccc; 
+        border-radius: 5px;
     }
 
     input[type="submit"] {
         width: 100%;
         padding: 10px;
-        font-size: 4vw; /* 調整提交按鈕字體大小 */
-        background-color: #007bff; /* 按鈕背景顏色 */
-        color: #fff; /* 文本顏色 */
+        font-size: 4vw; 
+        background-color: #007bff; 
+        color: #fff; 
         border: none;
-        border-radius: 5px; /* 圓角邊框 */
+        border-radius: 5px;
         cursor: pointer;
     }
 </style>
 </head>
 <body>
     <form action="https://e138-140-114-6-54.ngrok-free.app/submit" method="POST">
-        <label for="data">說說話:</label>
+        <label for="data">讓森森幫你說說話:</label>
         <input type="text" name="data">
         <input type="hidden" id="groupId" name="groupId" value="">
         <br><br>

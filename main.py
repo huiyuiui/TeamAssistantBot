@@ -30,24 +30,16 @@ from linebot.v3.exceptions import (
 )
 from linebot.v3.webhooks import (
     MessageEvent,
-    TextMessageContent,
-    PostbackEvent
+    TextMessageContent
 )
 
-from stock_peformace import StockPercentageChangeTool, StockGetBestPerformingTool
-from stock_price import StockPriceTool
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from langchain.agents import initialize_agent, Tool
 from langchain.agents import AgentType
 from langchain.chat_models import ChatOpenAI
-from wikipedia import WikiTool
-from youtube_restaurant import FindYoutubeVideoTool
-from linebot.models import URIAction
-
 
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
-
 
 # get channel_secret and channel_access_token from your environment variable
 channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
@@ -71,15 +63,8 @@ parser = WebhookParser(channel_secret)
 
 # Langchain (you must use 0613 model to use OpenAI functions.)
 model = ChatOpenAI(model="gpt-3.5-turbo-0613")
-tools = [
-    StockPriceTool(), StockPercentageChangeTool(),
-    StockGetBestPerformingTool(), FindYoutubeVideoTool(),
-    WikiTool()
-]
-system_message = SystemMessage(content="""
-                               你叫做小幫手測試1號，會友善的回覆使用者的任何問題，
-                               如果回答裡出現中文，你傾向使用繁體中文回答問題。
-                               """)
+tools = [ ]
+system_message = SystemMessage(content=""" 如果回答裡出現中文，你傾向使用繁體中文回答問題。 """)
 open_ai_agent = initialize_agent(
     tools,
     model,
@@ -89,11 +74,10 @@ open_ai_agent = initialize_agent(
 
 # collect previous message
 message_list = []
-received_data = []
 
 @app.post("/webhooks/line")
 async def handle_callback(request: Request):
-    global received_data, message_list
+    global message_list
     signature = request.headers['X-Line-Signature']
 
     # get request body as text
@@ -107,6 +91,15 @@ async def handle_callback(request: Request):
 
     for event in events:
         print(event)
+        # join event
+        if(event.type == 'join'):
+            await line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text='在這裡輸入歡迎訊息')]
+                )
+            )
+            continue
         if(event.type == 'message' and event.message.text == 'K'):
             groupId = event.source.group_id
             flex_menu = FlexMessage(alt_text="flex_menu", contents=FlexContainer.from_json(group_flex_menu(groupId)))
@@ -154,11 +147,6 @@ async def handle_callback(request: Request):
                     )
                 )
                 continue
-        # await line_bot_api.push_message(push_message_request=PushMessageRequest(
-        #     to=event.source.user_id,
-        #     messages=[TextMessage(text=event.message.text,
-        #                           quoteToken=event.message.quote_token)],
-        # ))
 
         # collect previous message
         message_list.append(HumanMessage(content=event.message.text))
@@ -181,7 +169,6 @@ async def handle_callback(request: Request):
 # get web data
 @app.post("/submit")
 async def submit(request: Request):
-    global received_data
     data = await request.form()
     print(f"raw data: {data}")
     received_data.append(data["data"])
@@ -199,7 +186,6 @@ async def submit(request: Request):
         <html>
         <head>
         <style>
-            /* 改進網頁布局，使其更適合手機 */
             body {
                 font-family: Arial, sans-serif;
                 background-color: #f1f1f1;
@@ -209,7 +195,7 @@ async def submit(request: Request):
 
             p {
                 font-weight: bold;
-                font-size: 4vw; /* 調整文字大小相對於視口寬度，根據需要進行更改 */
+                font-size: 4vw; 
             }
         </style>
         </head>
