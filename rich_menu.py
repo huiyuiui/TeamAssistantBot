@@ -23,7 +23,7 @@ body = {
           'action': {
               'type': 'postback', 
               'label': 'Tap area A', 
-              'data' :'action=reminder&itemid=111'}                # 點擊後傳送文字
+              'data' :'action=reminder'}                # 點擊後傳送文字
         },
         {
           'bounds': {'x': 835, 'y': 0, 'width': 1666, 'height': 843},

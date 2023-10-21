@@ -16,7 +16,8 @@ from linebot.v3.messaging import (
     Configuration,
     ReplyMessageRequest,
     PushMessageRequest,
-    TextMessage
+    TextMessage,
+    StickerMessage
 )
 from linebot.v3.exceptions import (
     InvalidSignatureError
@@ -88,19 +89,19 @@ async def handle_callback(request: Request):
 
     for event in events:
         print(event)
+        if(event.type == 'postback' and event.postback.data == 'action=reminder'):
+            await line_bot_api.reply_message(
+            ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text='去做事好嗎'), StickerMessage(package_id='11537', sticker_id='52002744')]
+                )
+            )
+            continue
         if not isinstance(event, MessageEvent):
             continue
         if not isinstance(event.message, TextMessageContent):
             continue
-
-        if(event.message.type == 'postback'):
-            await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text='做事好嗎')]
-                )
-            )
-            continue
+        
         # await line_bot_api.push_message(push_message_request=PushMessageRequest(
         #     to=event.source.user_id,
         #     messages=[TextMessage(text=event.message.text,
