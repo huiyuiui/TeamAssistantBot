@@ -34,6 +34,8 @@ from langchain.agents import AgentType
 from langchain.chat_models import ChatOpenAI
 from wikipedia import WikiTool
 from youtube_restaurant import FindYoutubeVideoTool
+from search_info import SearchInfoTool
+from summarizer import SummarizeTool
 
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
@@ -62,10 +64,10 @@ parser = WebhookParser(channel_secret)
 # Langchain (you must use 0613 model to use OpenAI functions.)
 model = ChatOpenAI(model="gpt-3.5-turbo-0613")
 tools = [
-    StockPriceTool(), StockPercentageChangeTool(),
-    StockGetBestPerformingTool(), FindYoutubeVideoTool(),
-    WikiTool()
-]
+    SummarizeTool()
+    # SearchInfoTool()
+]#  WikiTool(), StockPriceTool(), StockPercentageChangeTool(),
+ #   StockGetBestPerformingTool(), FindYoutubeVideoTool(),
 open_ai_agent = initialize_agent(
     tools,
     model,
