@@ -110,17 +110,6 @@ async def handle_callback(request: Request):
                 )
             )
             continue
-        if (event.type == 'postback' and event.postback.data == 'action=anonymous'):
-            if (received_data == []):
-                continue
-            await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text=i) for i in received_data]
-                )
-            )
-            received_data = []
-            continue
         if not isinstance(event, MessageEvent):
             continue
         if not isinstance(event.message, TextMessageContent):
