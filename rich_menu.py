@@ -21,9 +21,9 @@ body = {
         {
           'bounds': {'x': 0, 'y': 0, 'width': 834, 'height': 843}, # 選單位置與大小
           'action': {
-              'type': 'message', 
+              'type': 'postback', 
               'label': 'Tap area A', 
-              'text': '你好'}                # 點擊後傳送文字
+              'data' :'action=reminder&itemid=111'}                # 點擊後傳送文字
         },
         {
           'bounds': {'x': 835, 'y': 0, 'width': 1666, 'height': 843},
@@ -35,6 +35,12 @@ body = {
     ]
   }
 
+#刪除之前的richmenu
+# richmeun = requests.request('GET', 'https://api.line.me/v2/bot/richmenu/list', headers=headers)
+# for i in richmeun.json()['richmenus']:
+#     requests.request('DELETE', f'https://api.line.me/v2/bot/richmenu/{i["richMenuId"]}', headers=headers)
+
+# print(richmeun.json())
 # 向指定網址發送 request
 richmeun = requests.request('POST', 'https://api.line.me/v2/bot/richmenu',
                       headers=headers, data=json.dumps(body).encode('utf-8'))

@@ -92,6 +92,15 @@ async def handle_callback(request: Request):
             continue
         if not isinstance(event.message, TextMessageContent):
             continue
+
+        if(event.message.type == 'postback'):
+            await line_bot_api.reply_message(
+            ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text='做事好嗎')]
+                )
+            )
+            continue
         # await line_bot_api.push_message(push_message_request=PushMessageRequest(
         #     to=event.source.user_id,
         #     messages=[TextMessage(text=event.message.text,
