@@ -109,6 +109,7 @@ async def handle_callback(request: Request):
 
     return 'OK'
 
+import rich_menu
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', default=8080))
