@@ -30,7 +30,7 @@ body = {
           'action': {
               'type': 'uri', 
               'label': 'Tap area B', 
-              'uri': 'https://www.line-community.me/en/'}
+              'uri': 'https://mc-hackathon-20231021.web.app/'}
         }
     ]
   }

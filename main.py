@@ -24,12 +24,13 @@ from linebot.v3.exceptions import (
 )
 from linebot.v3.webhooks import (
     MessageEvent,
-    TextMessageContent
+    TextMessageContent,
+    PostbackEvent
 )
 
 from stock_peformace import StockPercentageChangeTool, StockGetBestPerformingTool
 from stock_price import StockPriceTool
-from langchain.schema import HumanMessage
+from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from langchain.agents import initialize_agent, Tool
 from langchain.agents import AgentType
 from langchain.chat_models import ChatOpenAI
@@ -67,12 +68,20 @@ tools = [
     StockGetBestPerformingTool(), FindYoutubeVideoTool(),
     WikiTool()
 ]
+system_message = SystemMessage(content="""
+                               你叫做小幫手測試1號，會友善的回覆使用者的任何問題，
+                               如果回答裡出現中文，你傾向使用繁體中文回答問題。
+                               """)
 open_ai_agent = initialize_agent(
     tools,
     model,
     agent=AgentType.OPENAI_FUNCTIONS,
-    verbose=False)
+    verbose=False,
+    agent_kwargs={"system_message": system_message},)
 
+# collect previous message
+message_list = []
+received_data = ""
 
 @app.post("/webhooks/line")
 async def handle_callback(request: Request):
@@ -108,7 +117,14 @@ async def handle_callback(request: Request):
         #                           quoteToken=event.message.quote_token)],
         # ))
 
-        tool_result = open_ai_agent.run(event.message.text)
+        # collect previous message
+        message_list.append(HumanMessage(content=event.message.text))
+
+        # tool_result = open_ai_agent.run(event.message.text)
+        tool_result = open_ai_agent.run(message_list)
+
+        # collect ai reply message
+        message_list.append(AIMessage(content=tool_result))
 
         await line_bot_api.reply_message(
             ReplyMessageRequest(
@@ -118,6 +134,15 @@ async def handle_callback(request: Request):
         )
 
     return 'OK'
+
+# get web data
+@app.post("/submit")
+async def submit(request: Request):
+    data = await request.form()
+    received_data = data["data"]
+    print("Received message:", received_data)
+
+    return {"message": received_data}
 
 import rich_menu
 
