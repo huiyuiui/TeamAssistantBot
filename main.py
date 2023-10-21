@@ -36,6 +36,7 @@ from wikipedia import WikiTool
 from youtube_restaurant import FindYoutubeVideoTool
 from search_info import SearchInfoTool
 from summarizer import SummarizeTool
+import csv
 
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
@@ -90,6 +91,7 @@ async def handle_callback(request: Request):
 
     for event in events:
         print(event)
+        write_message(event)
         if not isinstance(event, MessageEvent):
             continue
         if not isinstance(event.message, TextMessageContent):
@@ -100,7 +102,16 @@ async def handle_callback(request: Request):
         #                           quoteToken=event.message.quote_token)],
         # ))
 
-        tool_result = open_ai_agent.run(event.message.text)
+        
+        if event.message.text.find("summary") != -1:
+            print("SUM")
+            with open('message_content.txt', 'r', encoding="utf-8") as f:
+                messages = f.readlines()
+                print(messages)
+                tool_result = open_ai_agent.run(messages)
+            
+        else:
+            tool_result = open_ai_agent.run(event.message.text)
 
         await line_bot_api.reply_message(
             ReplyMessageRequest(
@@ -111,7 +122,11 @@ async def handle_callback(request: Request):
 
     return 'OK'
 
-
+def write_message(event):
+    message_str = event.message.text
+    with open('message_content.txt', 'a', encoding="utf-8") as f:
+        f.write(message_str + '\n')
+    
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', default=8080))
     debug = True if os.environ.get(
