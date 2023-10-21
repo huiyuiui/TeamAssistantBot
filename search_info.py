@@ -17,21 +17,13 @@ class SearchInput(BaseModel):
     result_message: str = Field(
         ...,
         description="Result messages that has been searched on internet")
-    
-    
-
-
-class SearchResultItem(BaseModel):
-    title: str
-    link: str
 
 
 class SearchInfoTool(BaseTool):
     name = "find_information_in_web"
-    description = f"Perform a web search on Google related to the key words and list key points and URLs."
+    description = "Perform a web search on Google related to the key words and list key points and URLs."
 
     def _run(self, query: str, result_message: str):
-        search_results = []
         print("Search info: ", query)
 
         return result_message
