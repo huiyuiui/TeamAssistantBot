@@ -25,6 +25,10 @@ firebase.json
 .pytest_cache
 venv/
 web/
+stock_peformace.py
+stock_price.py
+stock_tool.py
+yf_tool.py
 
 #K's inv
 LINE/

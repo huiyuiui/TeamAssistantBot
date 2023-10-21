@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+    }
+    
+    form {
+        text-align: center;
+        font-size: 4vw; 
+        max-width: 80%; 
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px; 
+    }
+    
+    label {
+        display: block; 
+        margin: 10px 0;
+    }
+    
+    input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        font-size: 4vw; 
+        border: 1px solid #ccc; 
+        border-radius: 5px;
+    }
+
+    input[type="submit"] {
+        width: 100%;
+        padding: 10px;
+        font-size: 4vw; 
+        background-color: #007bff; 
+        color: #fff; 
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+</style>
+</head>
+<body>
+    <form action="https://e138-140-114-6-54.ngrok-free.app/submit" method="POST">
+        <label for="data">讓森森幫你說說話:</label>
+        <input type="text" name="data">
+        <input type="hidden" id="groupId" name="groupId" value="">
+        <br><br>
+        <input type="submit" value="送出" onclick="closeWindow()">
+    </form>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const groupId = urlParams.get('id');
+        const groupIdField = document.getElementById("groupId");
+        groupIdField.value = groupId;
+    </script>
+</body>
+</html>

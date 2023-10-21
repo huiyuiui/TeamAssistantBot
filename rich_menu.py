@@ -28,19 +28,21 @@ body = {
         {
           'bounds': {'x': 835, 'y': 0, 'width': 1666, 'height': 843},
           'action': {
-              'type': 'uri', 
+            #   'type': 'uri',
+              'type': 'postback', 
               'label': 'Tap area B', 
-              'uri': 'https://mc-hackathon-20231021.web.app/'}
+            #   'uri': 'https://mc-hackathon-20231021.web.app/'}
+              'data' :'action=anonymous'}
         }
     ]
   }
 
 #刪除之前的richmenu
-# richmeun = requests.request('GET', 'https://api.line.me/v2/bot/richmenu/list', headers=headers)
-# for i in richmeun.json()['richmenus']:
-#     requests.request('DELETE', f'https://api.line.me/v2/bot/richmenu/{i["richMenuId"]}', headers=headers)
+richmeun = requests.request('GET', 'https://api.line.me/v2/bot/richmenu/list', headers=headers)
+for i in richmeun.json()['richmenus']:
+    requests.request('DELETE', f'https://api.line.me/v2/bot/richmenu/{i["richMenuId"]}', headers=headers)
 
-# print(richmeun.json())
+print(richmeun.json())
 # 向指定網址發送 request
 richmeun = requests.request('POST', 'https://api.line.me/v2/bot/richmenu',
                       headers=headers, data=json.dumps(body).encode('utf-8'))

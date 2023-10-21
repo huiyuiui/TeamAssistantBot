@@ -8,7 +8,7 @@ from langchain.utilities import WikipediaAPIWrapper
 from googlesearch import search
     
 class SummarizeInput(BaseModel):
-    """Input for summarizing tool."""
+    """Input for Summarizing tool."""
     summary: str = Field(
         ...,
         description="Summary of the chat")
