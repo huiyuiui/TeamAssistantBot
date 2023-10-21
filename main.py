@@ -123,6 +123,15 @@ async def handle_callback(request: Request):
                     )
                 )
             continue
+        if(event.type == 'postback' and event.postback.data == 'action=sumerise'):
+            Rtext, Rpackage_id, Rsticker_id = Random_textandsticker()
+            await line_bot_api.reply_message(
+                ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text='陳家輝的code接到這裡')]
+                    )
+                )
+            continue
         if not isinstance(event, MessageEvent):
             continue
         if not isinstance(event.message, TextMessageContent):
