@@ -67,7 +67,7 @@ parser = WebhookParser(channel_secret)
 
 # Langchain (you must use 0613 model to use OpenAI functions.)
 model = ChatOpenAI(model="gpt-3.5-turbo-0613")
-tools = [MoodAnalyzerTool() ]
+tools = []
 system_message = SystemMessage(content=""" 如果回答裡出現中文，你傾向使用繁體中文回答問題。 """)
 open_ai_agent = initialize_agent(
     tools,
@@ -76,6 +76,12 @@ open_ai_agent = initialize_agent(
     verbose=False,
     agent_kwargs={"system_message": system_message},)
 
+mood_tool_agent = initialize_agent(
+    tools = [MoodAnalyzerTool() ],
+    llm = model,
+    agent = AgentType.OPENAI_FUNCTIONS,
+    verbose=False,
+)
 # collect previous message
 message_list = []
 received_data = []
@@ -104,7 +110,7 @@ async def handle_callback(request: Request):
                 )
             )
             continue
-        if(event.type == 'message' and event.message.text == 'K'):
+        if(event.type == 'message' and event.message.text == '森森'):
             groupId = event.source.group_id
             flex_menu = FlexMessage(alt_text="flex_menu", contents=FlexContainer.from_json(group_flex_menu(groupId)))
             await line_bot_api.reply_message(
@@ -136,20 +142,6 @@ async def handle_callback(request: Request):
             continue
         if not isinstance(event.message, TextMessageContent):
             continue
-        # if is group and the text is "匿名連結", the send a url with group id
-        if (event.source.type == 'group' and event.message.text == '匿名連結'):
-            groupId = event.source.group_id
-            await line_bot_api.reply_message(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text='https://mc-hackathon-20231021.web.app/?id=' + groupId)]
-                )
-            )
-        # await line_bot_api.push_message(push_message_request=PushMessageRequest(
-        #     to=event.source.user_id,
-        #     messages=[TextMessage(text=event.message.text,
-        #                           quoteToken=event.message.quote_token)],
-        # ))
 
         # collect previous message
         message_list.append(HumanMessage(content=event.message.text))
@@ -180,7 +172,8 @@ async def submit(request: Request):
     print(f'id: {groupId}')
     print("Received message: ", received_data)
     # send a push message to the group
-    tool_result = open_ai_agent.run(received_data)
+    # run with mood_tool only
+    tool_result = mood_tool_agent.run(received_data)
     from mood_tool import _output
     print(f"mood result: {_output['mood']}")
     print(f"packageId: {_output['packageId']}, stickerId: {_output['stickerId']}")
