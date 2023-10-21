@@ -9,6 +9,7 @@ if os.getenv('API_ENV') != 'production':
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from linebot.v3.webhook import WebhookParser
 from linebot.v3.messaging import (
     AsyncApiClient,
@@ -41,6 +42,8 @@ from langchain.agents import AgentType
 from langchain.chat_models import ChatOpenAI
 from wikipedia import WikiTool
 from youtube_restaurant import FindYoutubeVideoTool
+from linebot.models import URIAction
+
 
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
@@ -86,10 +89,11 @@ open_ai_agent = initialize_agent(
 
 # collect previous message
 message_list = []
-received_data = ""
+received_data = []
 
 @app.post("/webhooks/line")
 async def handle_callback(request: Request):
+    global received_data, message_list
     signature = request.headers['X-Line-Signature']
 
     # get request body as text
@@ -137,7 +141,17 @@ async def handle_callback(request: Request):
             continue
         if not isinstance(event.message, TextMessageContent):
             continue
-        
+        if isinstance(event, MessageEvent):
+            # if is group and the text is "匿名連結", the send a url with group id
+            if (event.source.type == 'group' and event.message.text == '匿名連結'):
+                groupId = event.source.group_id
+                await line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text='https://mc-hackathon-20231021.web.app/?id=' + groupId)]
+                    )
+                )
+                continue
         # await line_bot_api.push_message(push_message_request=PushMessageRequest(
         #     to=event.source.user_id,
         #     messages=[TextMessage(text=event.message.text,
@@ -146,7 +160,7 @@ async def handle_callback(request: Request):
 
         # collect previous message
         message_list.append(HumanMessage(content=event.message.text))
-
+    
         # tool_result = open_ai_agent.run(event.message.text)
         tool_result = open_ai_agent.run(message_list)
 
@@ -165,6 +179,7 @@ async def handle_callback(request: Request):
 # get web data
 @app.post("/submit")
 async def submit(request: Request):
+    global received_data
     data = await request.form()
     received_data = data["data"]
     print("Received message:", received_data)
