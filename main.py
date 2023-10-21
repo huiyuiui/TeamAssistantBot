@@ -146,9 +146,10 @@ async def handle_callback(request: Request):
                     print(messages)
                     tool_result = open_ai_agent.run(messages)
                     
-            
             else:
                 tool_result = open_ai_agent.run(event.message.text)
+
+            write_sensen_message(event.source.group_id, tool_result)
 
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
@@ -169,15 +170,32 @@ async def write_message(event):
         message_queue = deque([], maxlen = 25)
     if event.type != "message" or event.message.type != "text":
         return
-    elif event.message.text.find("森森") != -1:
-        return
-
 
     currentDateAndTime = datetime.now()
     currentTime = currentDateAndTime.strftime("%H:%M")
     profile = await line_bot_api.get_profile(event.source.user_id)
 
     message_str = str(currentTime) + ' ' + profile.display_name + ':' + event.message.text +'\n'
+    message_queue.append(message_str)
+    with open(root, 'w', encoding="utf-8") as f:
+        f.writelines(message_queue)
+
+
+
+def write_sensen_message(group_id: int, text: str):
+    print("Writing Sensen message")
+    root = f"messages/message_content_{group_id}.txt"
+    if os.path.exists(root):
+        with open(root, 'r', encoding="utf-8") as f:
+            messages = f.readlines()
+            message_queue = deque(messages, maxlen=25)
+    else:
+        message_queue = deque([], maxlen = 25)
+
+    currentDateAndTime = datetime.now()
+    currentTime = currentDateAndTime.strftime("%H:%M")
+
+    message_str = str(currentTime) + ' ' + '森森' + ':' + text +'\n'
     message_queue.append(message_str)
     with open(root, 'w', encoding="utf-8") as f:
         f.writelines(message_queue)
