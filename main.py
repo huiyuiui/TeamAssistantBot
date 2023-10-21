@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-
+import re
 if os.getenv('API_ENV') != 'production':
     from dotenv import load_dotenv
 
@@ -18,6 +18,7 @@ from linebot.v3.messaging import (
     ReplyMessageRequest,
     PushMessageRequest,
     TextMessage,
+    ImageMessage,
     StickerMessage,
     FlexMessage,
     FlexContainer
@@ -37,6 +38,18 @@ from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from langchain.agents import initialize_agent, Tool
 from langchain.agents import AgentType
 from langchain.chat_models import ChatOpenAI
+from wikipedia import WikiTool
+from youtube_restaurant import FindYoutubeVideoTool
+from google_calendar import CalendarTool
+from schedule import ScheduleTool
+from search_info import SearchInfoTool
+from summarizer import SummarizeTool
+
+from time import time
+from datetime import datetime
+from collections import deque
+from imgurpython import ImgurClient 
+from todo_list import TodoListTool
 
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
@@ -63,8 +76,15 @@ parser = WebhookParser(channel_secret)
 
 # Langchain (you must use 0613 model to use OpenAI functions.)
 model = ChatOpenAI(model="gpt-3.5-turbo-0613")
-tools = [ ]
-system_message = SystemMessage(content=""" 如果回答裡出現中文，你傾向使用繁體中文回答問題。 """)
+tools = [
+    TodoListTool(), ScheduleTool(), CalendarTool(), 
+    SearchInfoTool(), WikiTool(), 
+    SummarizeTool(), FindYoutubeVideoTool(),
+]
+system_message = SystemMessage(content="""
+                               你叫做森森，你是一隻貓，你會友善的回覆使用者的任何問題，
+                               如果回答裡出現中文，你傾向使用繁體中文回答問題。
+                               """)
 open_ai_agent = initialize_agent(
     tools,
     model,
@@ -96,11 +116,12 @@ async def handle_callback(request: Request):
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text='在這裡輸入歡迎訊息')]
+                    messages=[TextMessage(text='我是森森，是一隻貓貓助手，有什麼問題都可以問我喔！')]
                 )
             )
             continue
-        if(event.type == 'message' and event.message.text == 'K'):
+        # Flex menu
+        if(event.type == 'message' and event.message.text == '森森'):
             groupId = event.source.group_id
             flex_menu = FlexMessage(alt_text="flex_menu", contents=FlexContainer.from_json(group_flex_menu(groupId)))
             await line_bot_api.reply_message(
@@ -110,6 +131,7 @@ async def handle_callback(request: Request):
                 )
             )
             continue
+        # Reminder
         if(event.type == 'postback' and event.postback.data == 'action=reminder'):
             # Reminder_text[10] = {'去做事好嗎', ''}
             # reminder_test
@@ -132,39 +154,108 @@ async def handle_callback(request: Request):
                     )
                 )
             continue
+        # if is group and the text is "匿名連結", the send a url with group id
+        if (event.source.type == 'group' and event.message.text == '匿名連結'):
+            groupId = event.source.group_id
+            await line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text='https://mc-hackathon-20231021.web.app/?id=' + groupId)]
+                )
+            )
+        
+        # Undefine check
         if not isinstance(event, MessageEvent):
             continue
         if not isinstance(event.message, TextMessageContent):
             continue
-        if isinstance(event, MessageEvent):
-            # if is group and the text is "匿名連結", the send a url with group id
-            if (event.source.type == 'group' and event.message.text == '匿名連結'):
-                groupId = event.source.group_id
-                await line_bot_api.reply_message(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text='https://mc-hackathon-20231021.web.app/?id=' + groupId)]
+
+        # if event.type == "join":
+        #     time.sleep(3)
+        #     await print_self_introduction(event)
+        # elif event.type == "message":
+        #     await write_message(event)
+        
+        # await line_bot_api.push_message(push_message_request=PushMessageRequest(
+        #     to=event.source.user_id,
+        #     messages=[TextMessage(text=event.message.text,
+        #                           quoteToken=event.message.quote_token)],
+        # ))
+
+        # Record message
+        if event.type == "message":
+            await write_message(event)
+
+        # Keyword trigger operation
+        line_bot_name = "森森"
+        if f"{line_bot_name}" in event.message.text:
+            if "統整" in event.message.text or "summary" in event.message.text:
+                print("SUM")
+                root = f"messages/message_content_{event.source.group_id}.txt"
+                with open(root, 'r', encoding="utf-8") as f:
+                    messages = f.readlines()
+                    print(messages)
+                    tool_result = open_ai_agent.run(messages)
+                    await line_bot_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=tool_result)]
+                        )
                     )
-                )
-                continue
-
-        # collect previous message
-        message_list.append(HumanMessage(content=event.message.text))
-    
-        # tool_result = open_ai_agent.run(event.message.text)
-        tool_result = open_ai_agent.run(message_list)
-
-        # collect ai reply message
-        message_list.append(AIMessage(content=tool_result))
-
-        await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=tool_result)]
-            )
-        )
+            
+            else:
+                tool_result = open_ai_agent.run(event.message.text)
+                
+                if ".png" in tool_result:
+                    pattern = r'https://.*?\.png'
+                    image_url = re.findall(pattern, tool_result)
+                    print(image_url)
+                    await line_bot_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=tool_result), ImageMessage(original_content_url=image_url[0], preview_image_url=image_url[0])]
+                        )
+                    )
+                else :
+                    await line_bot_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=tool_result)]
+                        )
+                    )
 
     return 'OK'
+
+async def write_message(event):
+    root = f"messages/message_content_{event.source.group_id}.txt"
+    if os.path.exists(root):
+        with open(root, 'r', encoding="utf-8") as f:
+            messages = f.readlines()
+            message_queue = deque(messages, maxlen=25)
+    else:
+        message_queue = deque([], maxlen = 25)
+    if event.type != "message" or event.message.type != "text":
+        return
+    elif event.message.text.find("森森") != -1:
+        return
+
+
+    currentDateAndTime = datetime.now()
+    currentTime = currentDateAndTime.strftime("%H:%M")
+    profile = await line_bot_api.get_profile(event.source.user_id)
+
+    message_str = str(currentTime) + ' ' + profile.display_name + ':' + event.message.text +'\n'
+    message_queue.append(message_str)
+    with open(root, 'w', encoding="utf-8") as f:
+        f.writelines(message_queue)
+
+
+async def print_self_introduction(event):
+    print("Self intro typing...")
+    await line_bot_api.push_message(push_message_request=PushMessageRequest(
+        to=event.source.group_id,
+        messages=[TextMessage(text="我來了！")],
+    ))
 
 # get web data
 @app.post("/submit")

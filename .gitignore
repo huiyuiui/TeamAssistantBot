@@ -24,6 +24,11 @@ pokemon_wiki.db-journal
 firebase.json
 .pytest_cache
 venv/
+web/
 
 #K's inv
 LINE/
+
+# yw
+ngrok
+task_chart.png
