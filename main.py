@@ -36,6 +36,7 @@ from langchain.chat_models import ChatOpenAI
 from wikipedia import WikiTool
 from youtube_restaurant import FindYoutubeVideoTool
 from google_calendar import CalendarTool
+from schedule import ScheduleTool
 
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
@@ -66,7 +67,7 @@ model = ChatOpenAI(model="gpt-3.5-turbo-0613")
 tools = [
     StockPriceTool(), StockPercentageChangeTool(),
     StockGetBestPerformingTool(), FindYoutubeVideoTool(),
-    WikiTool(), CalendarTool()
+    WikiTool(), CalendarTool(), ScheduleTool()
 ]
 system_message = SystemMessage(content="""
                                 如果回答有出現中文，你傾向使用繁體中文回答問題。
