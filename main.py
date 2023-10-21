@@ -16,20 +16,21 @@ from linebot.v3.messaging import (
     Configuration,
     ReplyMessageRequest,
     PushMessageRequest,
-    TextMessage
+    TextMessage,
+    StickerMessage
 )
 from linebot.v3.exceptions import (
     InvalidSignatureError
 )
 from linebot.v3.webhooks import (
     MessageEvent,
-    TextMessageContent
+    TextMessageContent,
+    PostbackEvent
 )
 
 from stock_peformace import StockPercentageChangeTool, StockGetBestPerformingTool
 from stock_price import StockPriceTool
-from langchain.schema import HumanMessage
-from langchain.schema import SystemMessage
+from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from langchain.agents import initialize_agent, Tool
 from langchain.agents import AgentType
 from langchain.chat_models import ChatOpenAI
@@ -71,8 +72,9 @@ tools = [
     WikiTool(), CalendarTool(), ScheduleTool(), TodoListTool()
 ]
 system_message = SystemMessage(content="""
-                                如果回答有出現中文，你傾向使用繁體中文回答問題。
-                                """)
+                               你叫做小幫手測試1號，會友善的回覆使用者的任何問題，
+                               如果回答裡出現中文，你傾向使用繁體中文回答問題。
+                               """)
 open_ai_agent = initialize_agent(
     tools,
     model,
@@ -80,6 +82,9 @@ open_ai_agent = initialize_agent(
     verbose=False,
     agent_kwargs={"system_message": system_message},)
 
+# collect previous message
+message_list = []
+received_data = ""
 
 @app.post("/webhooks/line")
 async def handle_callback(request: Request):
@@ -96,10 +101,19 @@ async def handle_callback(request: Request):
 
     for event in events:
         print(event)
+        if(event.type == 'postback' and event.postback.data == 'action=reminder'):
+            await line_bot_api.reply_message(
+            ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text='去做事好嗎'), StickerMessage(package_id='11537', sticker_id='52002744')]
+                )
+            )
+            continue
         if not isinstance(event, MessageEvent):
             continue
         if not isinstance(event.message, TextMessageContent):
             continue
+        
         # await line_bot_api.push_message(push_message_request=PushMessageRequest(
         #     to=event.source.user_id,
         #     messages=[TextMessage(text=event.message.text,
@@ -119,6 +133,16 @@ async def handle_callback(request: Request):
 
     return 'OK'
 
+# get web data
+@app.post("/submit")
+async def submit(request: Request):
+    data = await request.form()
+    received_data = data["data"]
+    print("Received message:", received_data)
+
+    return {"message": received_data}
+
+import rich_menu
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', default=8080))
