@@ -175,10 +175,16 @@ async def submit(request: Request):
     from mood_tool import _output
     print(f"mood result: {_output['mood']}")
     print(f"packageId: {_output['packageId']}, stickerId: {_output['stickerId']}")
-    await line_bot_api.push_message(PushMessageRequest(
-        to=groupId,
-        messages=[TextMessage(text=received_data[0]), StickerMessage(package_id=_output["packageId"], sticker_id=_output["stickerId"])]
-    ))
+    if _output["packageId"] == "" or _output["stickerId"] == "":
+        await line_bot_api.push_message(PushMessageRequest(
+            to=groupId,
+            messages=[TextMessage(text=received_data[0])]
+        ))
+    else:
+        await line_bot_api.push_message(PushMessageRequest(
+            to=groupId,
+            messages=[TextMessage(text=received_data[0]), StickerMessage(package_id=_output["packageId"], sticker_id=_output["stickerId"])]
+        ))
     received_data = received_data[1:]
     html_content = """
         <!DOCTYPE html>
