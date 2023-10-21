@@ -44,6 +44,8 @@ from wikipedia import WikiTool
 from youtube_restaurant import FindYoutubeVideoTool
 from linebot.models import URIAction
 
+from random_reminder import Random_textandsticker
+
 
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
@@ -118,24 +120,11 @@ async def handle_callback(request: Request):
             )
             continue
         if(event.type == 'postback' and event.postback.data == 'action=reminder'):
-            # Reminder_text[10] = {'去做事好嗎', ''}
-            # reminder_test
-            from linebot import LineBotApi
-            line_bot_api_K = LineBotApi(channel_access_token)
-
-            try:
-                print(event.source.user_id)
-                profile = line_bot_api_K.get_profile(event.source.user_id)
-                print(event.source.groupId)
-                # print(line_bot_api_K.get_profile(event.source.groupId))
-                print(profile.display_name)
-            except Exception as e:
-                print("NONONO")
-
+            Rtext, Rpackage_id, Rsticker_id = Random_textandsticker()
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
                         reply_token=event.reply_token,
-                        messages=[TextMessage(text='去做事好嗎'), StickerMessage(package_id='11537', sticker_id='52002744')]
+                        messages=[TextMessage(text=Rtext), StickerMessage(package_id=Rpackage_id, sticker_id=Rsticker_id)]
                     )
                 )
             continue
@@ -143,17 +132,15 @@ async def handle_callback(request: Request):
             continue
         if not isinstance(event.message, TextMessageContent):
             continue
-        if isinstance(event, MessageEvent):
-            # if is group and the text is "匿名連結", the send a url with group id
-            if (event.source.type == 'group' and event.message.text == '匿名連結'):
-                groupId = event.source.group_id
-                await line_bot_api.reply_message(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text='https://mc-hackathon-20231021.web.app/?id=' + groupId)]
-                    )
+        # if is group and the text is "匿名連結", the send a url with group id
+        if (event.source.type == 'group' and event.message.text == '匿名連結'):
+            groupId = event.source.group_id
+            await line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text='https://mc-hackathon-20231021.web.app/?id=' + groupId)]
                 )
-                continue
+            )
         # await line_bot_api.push_message(push_message_request=PushMessageRequest(
         #     to=event.source.user_id,
         #     messages=[TextMessage(text=event.message.text,

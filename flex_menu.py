@@ -27,12 +27,7 @@ def group_flex_menu(group_id: str):
             }}
         }}
         ]
-    }},
-    "styles": {{
-        "body": {{
-        "separator": true
-        }}
-    }}
+    }}    
     }}"""
 
     return bubble_string
