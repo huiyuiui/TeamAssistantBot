@@ -54,6 +54,7 @@ class ScheduleTool(BaseTool):
     Generate Task Schedule from text.
     According time limit and the number of people to schedule and distribute tasks.
     Start time and end time format should be like 'MM-DD'.
+    Start time and end time can't be the same.
     Current time {datetime.now()}.
     Output format should contain image url.
     """
@@ -104,12 +105,12 @@ class ScheduleTool(BaseTool):
         ax.barh(df.Task, df.days_start_to_end, left=df.start_num)
 
         # Ticks
-        xticks = np.arange(0, df. end_num.max()+1, 2)
+        xticks = np.arange(0, df. end_num.max()+1, 1)
         xticks_labels = pd.date_range(pd.to_datetime(proj_start, format='%m-%d'), end=pd.to_datetime(df.End_time, format='%m-%d').max()).strftime("%m/%d")
         xticks_minor = np.arange(0, df.end_num.max()+1, 1)
         ax.set_xticks(xticks)
         ax.set_xticks(xticks_minor, minor=True)
-        ax.set_xticklabels(xticks_labels[::2])
+        ax.set_xticklabels(xticks_labels[::1])
 
         # plt.show()
         plt.gca().invert_yaxis()

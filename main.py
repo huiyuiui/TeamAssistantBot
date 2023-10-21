@@ -75,10 +75,9 @@ parser = WebhookParser(channel_secret)
 # Langchain (you must use 0613 model to use OpenAI functions.)
 model = ChatOpenAI(model="gpt-3.5-turbo-0613")
 tools = [
-    StockPriceTool(), StockPercentageChangeTool(),
-    StockGetBestPerformingTool(), FindYoutubeVideoTool(),
-    WikiTool(), CalendarTool(), ScheduleTool(),
-    SummarizeTool(), SearchInfoTool(), TodoListTool()
+    TodoListTool(), ScheduleTool(), CalendarTool(), 
+    SearchInfoTool(), WikiTool(), 
+    SummarizeTool(), FindYoutubeVideoTool(),
 ]
 system_message = SystemMessage(content="""
                                你叫做森森，你是一隻貓，你會友善的回覆使用者的任何問題，
@@ -140,22 +139,31 @@ async def handle_callback(request: Request):
             if "統整" in event.message.text or "summary" in event.message.text:
                 print("SUM")
                 root = f"messages/message_content_{event.source.group_id}.txt"
-                
                 with open(root, 'r', encoding="utf-8") as f:
                     messages = f.readlines()
                     print(messages)
                     tool_result = open_ai_agent.run(messages)
-                    
             
             else:
                 tool_result = open_ai_agent.run(event.message.text)
-
-            await line_bot_api.reply_message(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text=tool_result, quoteToken=event.message.quote_token)]
+                
+                if ".png" in tool_result:
+                    pattern = r'https://.*?\.png'
+                    image_url = re.findall(pattern, tool_result)
+                    print(image_url)
+                    await line_bot_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=tool_result), ImageMessage(original_content_url=image_url[0], preview_image_url=image_url[0])]
+                        )
+                    )
+                else :
+                    await line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=tool_result)]
+                    )
                 )
-            )
 
     return 'OK'
 
