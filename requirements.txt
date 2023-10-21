@@ -9,3 +9,4 @@ pydantic
 tiktoken
 youtube_search
 matplotlib
+imgurpython

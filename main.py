@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-
+import re
 if os.getenv('API_ENV') != 'production':
     from dotenv import load_dotenv
 
@@ -16,7 +16,8 @@ from linebot.v3.messaging import (
     Configuration,
     ReplyMessageRequest,
     PushMessageRequest,
-    TextMessage
+    TextMessage,
+    ImageMessage
 )
 from linebot.v3.exceptions import (
     InvalidSignatureError
@@ -109,7 +110,25 @@ async def handle_callback(request: Request):
         line_bot_name = "森森"
         if f"{line_bot_name}" in event.message.text:
             tool_result = open_ai_agent.run(event.message.text)
-
+            # print(tool_result)
+            
+            # if ".png" in tool_result:
+            #     pattern = r'http://.*?\.png'
+            #     image_url = re.findall(pattern, tool_result)
+            #     print(image_url)
+            #     await line_bot_api.reply_message(
+            #         ReplyMessageRequest(
+            #             reply_token=event.reply_token,
+            #             messages=[ImageMessage(original_content_url=image_url, preview_image_url=image_url)]
+            #         )
+            #     )
+            # else :
+            #     await line_bot_api.reply_message(
+            #     ReplyMessageRequest(
+            #         reply_token=event.reply_token,
+            #         messages=[TextMessage(text=tool_result)]
+            #     )
+            # )
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
