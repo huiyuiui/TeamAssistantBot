@@ -9,6 +9,7 @@ if os.getenv('API_ENV') != 'production':
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from linebot.v3.webhook import WebhookParser
 from linebot.v3.messaging import (
     AsyncApiClient,
@@ -36,6 +37,8 @@ from langchain.agents import AgentType
 from langchain.chat_models import ChatOpenAI
 from wikipedia import WikiTool
 from youtube_restaurant import FindYoutubeVideoTool
+from linebot.models import URIAction
+
 
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
@@ -81,10 +84,11 @@ open_ai_agent = initialize_agent(
 
 # collect previous message
 message_list = []
-received_data = ""
+received_data = []
 
 @app.post("/webhooks/line")
 async def handle_callback(request: Request):
+    global received_data, message_list
     signature = request.headers['X-Line-Signature']
 
     # get request body as text
@@ -98,7 +102,7 @@ async def handle_callback(request: Request):
 
     for event in events:
         print(event)
-        if(event.type == 'postback' and event.postback.data == 'action=reminder'):
+        if (event.type == 'postback' and event.postback.data == 'action=reminder'):
             await line_bot_api.reply_message(
             ReplyMessageRequest(
                     reply_token=event.reply_token,
@@ -106,11 +110,32 @@ async def handle_callback(request: Request):
                 )
             )
             continue
+        if (event.type == 'postback' and event.postback.data == 'action=anonymous'):
+            if (received_data == []):
+                continue
+            await line_bot_api.reply_message(
+            ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=i) for i in received_data]
+                )
+            )
+            received_data = []
+            continue
         if not isinstance(event, MessageEvent):
             continue
         if not isinstance(event.message, TextMessageContent):
             continue
-        
+        if isinstance(event, MessageEvent):
+            # if is group and the text is "匿名連結", the send a url with group id
+            if (event.source.type == 'group' and event.message.text == '匿名連結'):
+                groupId = event.source.group_id
+                await line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text='https://mc-hackathon-20231021.web.app/?id=' + groupId)]
+                    )
+                )
+                continue
         # await line_bot_api.push_message(push_message_request=PushMessageRequest(
         #     to=event.source.user_id,
         #     messages=[TextMessage(text=event.message.text,
@@ -119,7 +144,7 @@ async def handle_callback(request: Request):
 
         # collect previous message
         message_list.append(HumanMessage(content=event.message.text))
-
+    
         # tool_result = open_ai_agent.run(event.message.text)
         tool_result = open_ai_agent.run(message_list)
 
@@ -138,11 +163,46 @@ async def handle_callback(request: Request):
 # get web data
 @app.post("/submit")
 async def submit(request: Request):
+    global received_data
     data = await request.form()
-    received_data = data["data"]
-    print("Received message:", received_data)
+    print(f"raw data: {data}")
+    received_data.append(data["data"])
+    groupId = data["groupId"]
+    print(f'id: {groupId}')
+    print("Received message: ", received_data)
+    # send a push message to the group
+    await line_bot_api.push_message(push_message_request=PushMessageRequest(
+        to=groupId,
+        messages=[TextMessage(text=msg) for msg in received_data]
+    ))
+    received_data = []
+    html_content = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <style>
+            /* 改進網頁布局，使其更適合手機 */
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f1f1f1;
+                padding: 20px;
+                text-align: center;
+            }
 
-    return {"message": received_data}
+            p {
+                font-weight: bold;
+                font-size: 4vw; /* 調整文字大小相對於視口寬度，根據需要進行更改 */
+            }
+        </style>
+        </head>
+        <body>
+            <p>成功送出！</p>
+            <p>請回到LINE聊天室點擊匿名發言，讓機器人幫你告訴大家！</p>
+        </body>
+        </html>
+
+    """
+    return HTMLResponse(content=html_content)
 
 import rich_menu
 

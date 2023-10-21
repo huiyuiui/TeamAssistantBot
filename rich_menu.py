@@ -28,9 +28,11 @@ body = {
         {
           'bounds': {'x': 835, 'y': 0, 'width': 1666, 'height': 843},
           'action': {
-              'type': 'uri', 
+            #   'type': 'uri',
+              'type': 'postback', 
               'label': 'Tap area B', 
-              'uri': 'https://mc-hackathon-20231021.web.app/'}
+            #   'uri': 'https://mc-hackathon-20231021.web.app/'}
+              'data' :'action=anonymous'}
         }
     ]
   }
