@@ -1,14 +1,64 @@
 <!DOCTYPE html>
 <html>
+<head>
+<style>
+    /* 將表單居中並使其直式顯示 */
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0; /* 背景顏色 */
+    }
+    
+    form {
+        text-align: center;
+        font-size: 4vw; /* 調整字體大小相對於視口寬度，根據需要進行更改 */
+        max-width: 80%; /* 控制表單最大寬度 */
+        background-color: #fff; /* 表單背景顏色 */
+        padding: 20px;
+        border-radius: 10px; /* 圓角邊框 */
+    }
+    
+    label {
+        display: block; /* 每個標籤疊放顯示 */
+        margin: 10px 0;
+    }
+    
+    input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        font-size: 4vw; /* 調整文字框字體大小 */
+        border: 1px solid #ccc; /* 邊框顏色 */
+        border-radius: 5px; /* 圓角邊框 */
+    }
 
+    input[type="submit"] {
+        width: 100%;
+        padding: 10px;
+        font-size: 4vw; /* 調整提交按鈕字體大小 */
+        background-color: #007bff; /* 按鈕背景顏色 */
+        color: #fff; /* 文本顏色 */
+        border: none;
+        border-radius: 5px; /* 圓角邊框 */
+        cursor: pointer;
+    }
+</style>
+</head>
 <body>
-
     <form action="https://e138-140-114-6-54.ngrok-free.app/submit" method="POST">
-        <label for="data">說說話:</label><br>
-        <input type="text" name="data"><br><br>
-        <input type="submit" value="提交">
+        <label for="data">說說話:</label>
+        <input type="text" name="data">
+        <input type="text" id="groupId" name="groupId" value="">
+        <br><br>
+        <input type="submit" value="送出" onclick="closeWindow()">
     </form>
-
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const groupId = urlParams.get('id');
+        const groupIdField = document.getElementById("groupId");
+        groupIdField.value = groupId;
+    </script>
 </body>
-
 </html>
