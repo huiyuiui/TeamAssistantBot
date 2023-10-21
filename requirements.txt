@@ -11,3 +11,4 @@ youtube_search
 googlesearch-python
 matplotlib
 imgurpython
+googlesearch-python

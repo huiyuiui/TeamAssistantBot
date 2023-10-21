@@ -45,7 +45,7 @@ from summarizer import SummarizeTool
 import csv
 from datetime import datetime
 from collections import deque
-from imgurpython import ImgurClientfrom 
+from imgurpython import ImgurClient 
 from todo_list import TodoListTool
 
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))

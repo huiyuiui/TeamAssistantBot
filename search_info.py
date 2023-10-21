@@ -30,7 +30,7 @@ class SearchInfoTool(BaseTool):
     name = "find_information_in_web"
     description = f"Perform a web search on Google related to the key words and list key points and URLs."
 
-    def _run(self, query: str):
+    def _run(self, query: str, result_message: str):
         search_results = []
         print("Search info: ", query)
 
