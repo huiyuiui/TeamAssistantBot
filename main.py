@@ -36,7 +36,9 @@ from wikipedia import WikiTool
 from youtube_restaurant import FindYoutubeVideoTool
 from search_info import SearchInfoTool
 from summarizer import SummarizeTool
+
 import csv
+from datetime import datetime
 
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
@@ -91,7 +93,7 @@ async def handle_callback(request: Request):
 
     for event in events:
         print(event)
-        write_message(event)
+        await write_message(event)
         if not isinstance(event, MessageEvent):
             continue
         if not isinstance(event.message, TextMessageContent):
@@ -102,29 +104,42 @@ async def handle_callback(request: Request):
         #                           quoteToken=event.message.quote_token)],
         # ))
 
-        
-        if event.message.text.find("summary") != -1:
-            print("SUM")
-            with open('message_content.txt', 'r', encoding="utf-8") as f:
-                messages = f.readlines()
-                print(messages)
-                tool_result = open_ai_agent.run(messages)
+        line_bot_name = "森森"
+        if f"{line_bot_name}" in event.message.text:
+            if event.message.text.find("summary") != -1:
+                print("SUM")
+                root = f"messages/message_content_{event.source.group_id}.txt"
+                with open(root, 'r', encoding="utf-8") as f:
+                    messages = f.readlines()
+                    print(messages)
+                    tool_result = open_ai_agent.run(messages)
             
-        else:
-            tool_result = open_ai_agent.run(event.message.text)
+            else:
+                tool_result = open_ai_agent.run(event.message.text)
 
-        await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=tool_result)]
+            await line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=tool_result)]
+                )
             )
-        )
 
     return 'OK'
 
-def write_message(event):
-    message_str = event.message.text
-    with open('message_content.txt', 'a', encoding="utf-8") as f:
+async def write_message(event):
+    if event.message.type != "text":
+        return
+    elif event.message.text.find("森森") != -1:
+        return
+    root = f"messages/message_content_{event.source.group_id}.txt"
+
+    currentDateAndTime = datetime.now()
+    currentTime = currentDateAndTime.strftime("%H:%M")
+    profile = await line_bot_api.get_profile(event.source.user_id)
+
+    message_str = str(currentTime) + ' ' + profile.display_name + ':' + event.message.text
+
+    with open(root, 'a', encoding="utf-8") as f:
         f.write(message_str + '\n')
     
 if __name__ == "__main__":

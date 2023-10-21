@@ -17,7 +17,7 @@ class SummarizeInput(BaseModel):
 
 class SummarizeTool(BaseTool):
     name = "group_message_summarizer"
-    description = f"Summarize the input chat messages when seeing 'summary' considering time scale."
+    description = f"Briefly summarize the latest input chat messages contents when seeing 'summary' in 200 Traditional Chinese words."
 
     def _run(self, summary: str):
         return summary
