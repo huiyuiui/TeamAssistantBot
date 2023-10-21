@@ -4,6 +4,7 @@ from typing import Optional, Type
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
 
+import Globals
 class TodoInput(BaseModel):
     """Input for Todo."""
     task: str = Field(
@@ -29,10 +30,12 @@ class TodoListTool(BaseTool):
     Manage a to-do list for users.
     Input should contain one of the following operations: , addcomplete and check.
     """
-
-    global_todo_list: Dict[str, bool] = {}
+    global_todo_list: Dict[str, bool] = Globals.get_todo_list()
+    #global_todo_list: Dict[str, bool] = {}
 
     def _run(self, status: str, todos: Optional[List[TodoInput]] = None):
+        self.global_todo_list = Globals.get_todo_list()
+        print("現在global_todo_list: ", self.global_todo_list)
         print("操作:", status)
         if todos:
             print("任務:", todos)
@@ -60,8 +63,12 @@ class TodoListTool(BaseTool):
             return self.get_todo_list()
         else:
             return "請提供您要對TODO-List進行的操作"
+        
     
     def get_todo_list(self):
+        Globals.update_todo_list(self.global_todo_list)
+
+        print("in get_todo_list Globals list: ", Globals.get_todo_list(), "self: ", self.global_todo_list)
         todo_list = [task for task, completed in self.global_todo_list.items() if not completed]
         completed_list = [task for task, completed in self.global_todo_list.items() if completed]
 

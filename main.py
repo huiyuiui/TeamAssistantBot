@@ -44,6 +44,7 @@ from google_calendar import CalendarTool
 from schedule import ScheduleTool
 from search_info import SearchInfoTool
 from summarizer import SummarizeTool
+from meeting_arangement import MeetingTool
 
 from time import time
 from datetime import datetime
@@ -55,8 +56,11 @@ from mood_tool import MoodAnalyzerTool
 from random_reminder import Random_textandsticker
 
 
+import Globals
+
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
+Globals.initialize()
 
 # get channel_secret and channel_access_token from your environment variable
 channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
@@ -81,9 +85,9 @@ parser = WebhookParser(channel_secret)
 # Langchain (you must use 0613 model to use OpenAI functions.)
 model = ChatOpenAI(model="gpt-3.5-turbo-0613")
 tools = [
-    TodoListTool(), ScheduleTool(), CalendarTool(), 
-    SearchInfoTool(), WikiTool(), 
+    SearchInfoTool(), WikiTool(), MeetingTool(),
     SummarizeTool(), FindYoutubeVideoTool(),
+    ScheduleTool(), CalendarTool(), TodoListTool()
 ]
 system_message = SystemMessage(content="""
                                你叫做森森，你是一隻貓，你會友善的回覆使用者的任何問題，
@@ -188,7 +192,7 @@ async def handle_callback(request: Request):
         #                           quoteToken=event.message.quote_token)],
         # ))
 
-        # Record message
+        # Record message(can only be used in group)
         if event.type == "message":
             await write_message(event)
 
@@ -202,15 +206,36 @@ async def handle_callback(request: Request):
                     messages = f.readlines()
                     print(messages)
                     tool_result = open_ai_agent.run(messages)
+                    with open(root, 'w', encoding="utf-8") as f:
+                        f.write("") 
                     await line_bot_api.reply_message(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
                             messages=[TextMessage(text=tool_result)]
                         )
                     )
-            
+
+            elif "什麼時候開會" in event.message.text or "when to meet" in event.message.text:
+                print("MEET")
+                root = f"messages/message_content_{event.source.group_id}.txt"
+                with open(root, 'r', encoding="utf-8") as f:
+                    messages = f.readlines()
+                    print(messages)
+                    tool_result = open_ai_agent.run(messages)
+                    with open(root, 'w', encoding="utf-8") as f:
+                        f.write("") 
+                    print(tool_result)
+                    await line_bot_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=tool_result)]
+                        )
+                    )
             else:
+                if os.path.exists(f"todo_lists/todo_list_{event.source.group_id}.json"):
+                    Globals.read_todo_from_file(event.source.group_id)
                 tool_result = open_ai_agent.run(event.message.text)
+                # write_sensen_message(event.source.group_id, tool_result)
                 
                 if ".png" in tool_result:
                     pattern = r'https://.*?\.png'
@@ -229,10 +254,18 @@ async def handle_callback(request: Request):
                             messages=[TextMessage(text=tool_result)]
                         )
                     )
+                    
+                Globals.write_todo_to_file(event.source.group_id)
+            
 
     return 'OK'
 
 async def write_message(event):
+    if event.type != "message" or event.message.type != "text":
+        return
+    if "森森" in event.message.text:
+        return
+    
     root = f"messages/message_content_{event.source.group_id}.txt"
     if os.path.exists(root):
         with open(root, 'r', encoding="utf-8") as f:
@@ -240,10 +273,6 @@ async def write_message(event):
             message_queue = deque(messages, maxlen=25)
     else:
         message_queue = deque([], maxlen = 25)
-    if event.type != "message" or event.message.type != "text":
-        return
-    elif event.message.text.find("森森") != -1:
-        return
 
 
     currentDateAndTime = datetime.now()
@@ -256,12 +285,23 @@ async def write_message(event):
         f.writelines(message_queue)
 
 
-async def print_self_introduction(event):
-    print("Self intro typing...")
-    await line_bot_api.push_message(push_message_request=PushMessageRequest(
-        to=event.source.group_id,
-        messages=[TextMessage(text="我來了！")],
-    ))
+def write_sensen_message(group_id: int, text: str):
+    print("Writing Sensen message")
+    root = f"messages/message_content_{group_id}.txt"
+    if os.path.exists(root):
+        with open(root, 'r', encoding="utf-8") as f:
+            messages = f.readlines()
+            message_queue = deque(messages, maxlen=25)
+    else:
+        message_queue = deque([], maxlen = 25)
+
+    currentDateAndTime = datetime.now()
+    currentTime = currentDateAndTime.strftime("%H:%M")
+
+    message_str = str(currentTime) + ' ' + '森森' + ':' + text +'\n'
+    message_queue.append(message_str)
+    with open(root, 'w', encoding="utf-8") as f:
+        f.writelines(message_queue)
 
 # get web data
 @app.post("/submit")
