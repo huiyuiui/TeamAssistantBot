@@ -54,6 +54,7 @@ class ScheduleTool(BaseTool):
     Generate Task Schedule from text.
     According time limit and the number of people to schedule and distribute tasks.
     Start time and end time format should be like 'MM-DD'.
+    Start time and end time can't be the same.
     Current time {datetime.now()}.
     Output format should contain image url.
     """

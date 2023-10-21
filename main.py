@@ -112,24 +112,18 @@ async def handle_callback(request: Request):
             tool_result = open_ai_agent.run(event.message.text)
             # print(tool_result)
             
-            # if ".png" in tool_result:
-            #     pattern = r'http://.*?\.png'
-            #     image_url = re.findall(pattern, tool_result)
-            #     print(image_url)
-            #     await line_bot_api.reply_message(
-            #         ReplyMessageRequest(
-            #             reply_token=event.reply_token,
-            #             messages=[ImageMessage(original_content_url=image_url, preview_image_url=image_url)]
-            #         )
-            #     )
-            # else :
-            #     await line_bot_api.reply_message(
-            #     ReplyMessageRequest(
-            #         reply_token=event.reply_token,
-            #         messages=[TextMessage(text=tool_result)]
-            #     )
-            # )
-            await line_bot_api.reply_message(
+            if ".png" in tool_result:
+                pattern = r'https://.*?\.png'
+                image_url = re.findall(pattern, tool_result)
+                print(image_url)
+                await line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=tool_result), ImageMessage(original_content_url=image_url[0], preview_image_url=image_url[0])]
+                    )
+                )
+            else :
+                await line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
                     messages=[TextMessage(text=tool_result)]
