@@ -48,9 +48,11 @@ from collections import deque
 from imgurpython import ImgurClient 
 from todo_list import TodoListTool
 
+import Globals
+
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
-
+Globals.initialize()
 
 # get channel_secret and channel_access_token from your environment variable
 channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
@@ -123,10 +125,7 @@ async def handle_callback(request: Request):
         if not isinstance(event.message, TextMessageContent):
             continue
 
-        if event.type == "join":
-            time.sleep(3)
-            await print_self_introduction(event)
-        elif event.type == "message":
+        if event.type == "message":
             await write_message(event)
         # await line_bot_api.push_message(push_message_request=PushMessageRequest(
         #     to=event.source.user_id,
@@ -146,8 +145,10 @@ async def handle_callback(request: Request):
                     
             
             else:
+                if os.path.exists(f"todo_lists/todo_list_{event.source.group_id}.json"):
+                    Globals.read_todo_from_file(event.source.group_id)
                 tool_result = open_ai_agent.run(event.message.text)
-                write_sensen_message(event.source.group_id, tool_result)
+                # write_sensen_message(event.source.group_id, tool_result)
                 
                 if ".png" in tool_result:
                     pattern = r'https://.*?\.png'
@@ -166,10 +167,18 @@ async def handle_callback(request: Request):
                         messages=[TextMessage(text=tool_result)]
                     )
                 )
+                    
+                Globals.write_todo_to_file(event.source.group_id)
+            
 
     return 'OK'
 
 async def write_message(event):
+    if event.type != "message" or event.message.type != "text":
+        return
+    if "森森" in event.message.text:
+        return
+    
     root = f"messages/message_content_{event.source.group_id}.txt"
     if os.path.exists(root):
         with open(root, 'r', encoding="utf-8") as f:
@@ -177,8 +186,7 @@ async def write_message(event):
             message_queue = deque(messages, maxlen=25)
     else:
         message_queue = deque([], maxlen = 25)
-    if event.type != "message" or event.message.type != "text":
-        return
+
 
     currentDateAndTime = datetime.now()
     currentTime = currentDateAndTime.strftime("%H:%M")
@@ -188,7 +196,6 @@ async def write_message(event):
     message_queue.append(message_str)
     with open(root, 'w', encoding="utf-8") as f:
         f.writelines(message_queue)
-
 
 
 def write_sensen_message(group_id: int, text: str):
@@ -208,14 +215,6 @@ def write_sensen_message(group_id: int, text: str):
     message_queue.append(message_str)
     with open(root, 'w', encoding="utf-8") as f:
         f.writelines(message_queue)
-
-
-async def print_self_introduction(event):
-    print("Self intro typing...")
-    await line_bot_api.push_message(push_message_request=PushMessageRequest(
-        to=event.source.group_id,
-        messages=[TextMessage(text="我來了！")],
-    ))
 
 # get web data
 @app.post("/submit")
