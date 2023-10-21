@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-
+import re
 if os.getenv('API_ENV') != 'production':
     from dotenv import load_dotenv
 
@@ -17,6 +17,7 @@ from linebot.v3.messaging import (
     ReplyMessageRequest,
     PushMessageRequest,
     TextMessage,
+    ImageMessage,
     StickerMessage
 )
 from linebot.v3.exceptions import (
@@ -38,6 +39,13 @@ from wikipedia import WikiTool
 from youtube_restaurant import FindYoutubeVideoTool
 from google_calendar import CalendarTool
 from schedule import ScheduleTool
+from search_info import SearchInfoTool
+from summarizer import SummarizeTool
+
+import csv
+from datetime import datetime
+from collections import deque
+from imgurpython import ImgurClientfrom 
 from todo_list import TodoListTool
 
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
@@ -69,7 +77,8 @@ model = ChatOpenAI(model="gpt-3.5-turbo-0613")
 tools = [
     StockPriceTool(), StockPercentageChangeTool(),
     StockGetBestPerformingTool(), FindYoutubeVideoTool(),
-    WikiTool(), CalendarTool(), ScheduleTool(), TodoListTool()
+    WikiTool(), CalendarTool(), ScheduleTool(),
+    SummarizeTool(), SearchInfoTool(), TodoListTool()
 ]
 system_message = SystemMessage(content="""
                                你叫做小幫手測試1號，會友善的回覆使用者的任何問題，
@@ -109,6 +118,7 @@ async def handle_callback(request: Request):
                 )
             )
             continue
+        await write_message(event)
         if not isinstance(event, MessageEvent):
             continue
         if not isinstance(event.message, TextMessageContent):
@@ -122,7 +132,16 @@ async def handle_callback(request: Request):
 
         line_bot_name = "森森"
         if f"{line_bot_name}" in event.message.text:
-            tool_result = open_ai_agent.run(event.message.text)
+            if event.message.text.find("summary") != -1:
+                print("SUM")
+                root = f"messages/message_content_{event.source.group_id}.txt"
+                with open(root, 'r', encoding="utf-8") as f:
+                    messages = f.readlines()
+                    print(messages)
+                    tool_result = open_ai_agent.run(messages)
+            
+            else:
+                tool_result = open_ai_agent.run(event.message.text)
 
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
@@ -133,7 +152,28 @@ async def handle_callback(request: Request):
 
     return 'OK'
 
-# get web data
+async def write_message(event):
+    root = f"messages/message_content_{event.source.group_id}.txt"
+    with open(root, 'r', encoding="utf-8") as f:
+        messages = f.readlines()
+        message_queue = deque(messages, maxlen=25)
+
+    if event.message.type != "text":
+        return
+    elif event.message.text.find("森森") != -1:
+        return
+
+
+    currentDateAndTime = datetime.now()
+    currentTime = currentDateAndTime.strftime("%H:%M")
+    profile = await line_bot_api.get_profile(event.source.user_id)
+
+    message_str = str(currentTime) + ' ' + profile.display_name + ':' + event.message.text +'\n'
+    message_queue.append(message_str)
+    with open(root, 'w', encoding="utf-8") as f:
+        f.writelines(message_queue)
+
+    # get web data
 @app.post("/submit")
 async def submit(request: Request):
     data = await request.form()
