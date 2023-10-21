@@ -50,6 +50,10 @@ from datetime import datetime
 from collections import deque
 from imgurpython import ImgurClient 
 from todo_list import TodoListTool
+from mood_tool import MoodAnalyzerTool
+
+from random_reminder import Random_textandsticker
+
 
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
@@ -92,6 +96,12 @@ open_ai_agent = initialize_agent(
     verbose=False,
     agent_kwargs={"system_message": system_message},)
 
+mood_tool_agent = initialize_agent(
+    tools = [MoodAnalyzerTool() ],
+    llm = model,
+    agent = AgentType.OPENAI_FUNCTIONS,
+    verbose=False,
+)
 # collect previous message
 message_list = []
 received_data = []
@@ -133,24 +143,20 @@ async def handle_callback(request: Request):
             continue
         # Reminder
         if(event.type == 'postback' and event.postback.data == 'action=reminder'):
-            # Reminder_text[10] = {'去做事好嗎', ''}
-            # reminder_test
-            from linebot import LineBotApi
-            line_bot_api_K = LineBotApi(channel_access_token)
-
-            try:
-                print(event.source.user_id)
-                profile = line_bot_api_K.get_profile(event.source.user_id)
-                print(event.source.groupId)
-                # print(line_bot_api_K.get_profile(event.source.groupId))
-                print(profile.display_name)
-            except Exception as e:
-                print("NONONO")
-
+            Rtext, Rpackage_id, Rsticker_id = Random_textandsticker()
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
                         reply_token=event.reply_token,
-                        messages=[TextMessage(text='去做事好嗎'), StickerMessage(package_id='11537', sticker_id='52002744')]
+                        messages=[TextMessage(text=Rtext), StickerMessage(package_id=Rpackage_id, sticker_id=Rsticker_id)]
+                    )
+                )
+            continue
+        if(event.type == 'postback' and event.postback.data == 'action=sumerise'):
+            Rtext, Rpackage_id, Rsticker_id = Random_textandsticker()
+            await line_bot_api.reply_message(
+                ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text='陳家輝的code接到這裡')]
                     )
                 )
             continue
@@ -268,11 +274,22 @@ async def submit(request: Request):
     print(f'id: {groupId}')
     print("Received message: ", received_data)
     # send a push message to the group
-    await line_bot_api.push_message(push_message_request=PushMessageRequest(
-        to=groupId,
-        messages=[TextMessage(text=msg) for msg in received_data]
-    ))
-    received_data = []
+    # run with mood_tool only
+    tool_result = mood_tool_agent.run(received_data)
+    from mood_tool import _output
+    print(f"mood result: {_output['mood']}")
+    print(f"packageId: {_output['packageId']}, stickerId: {_output['stickerId']}")
+    if _output["packageId"] == "" or _output["stickerId"] == "":
+        await line_bot_api.push_message(PushMessageRequest(
+            to=groupId,
+            messages=[TextMessage(text=received_data[0])]
+        ))
+    else:
+        await line_bot_api.push_message(PushMessageRequest(
+            to=groupId,
+            messages=[TextMessage(text=received_data[0]), StickerMessage(package_id=_output["packageId"], sticker_id=_output["stickerId"])]
+        ))
+    received_data = received_data[1:]
     html_content = """
         <!DOCTYPE html>
         <html>
