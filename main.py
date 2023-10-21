@@ -23,7 +23,7 @@ from linebot.v3.messaging import (
     FlexContainer
 )
 
-from flex_menu import flex_menu
+from flex_menu import group_flex_menu
 
 from linebot.v3.exceptions import (
     InvalidSignatureError
@@ -108,6 +108,8 @@ async def handle_callback(request: Request):
     for event in events:
         print(event)
         if(event.type == 'message' and event.message.text == 'K'):
+            groupId = event.source.group_id
+            flex_menu = FlexMessage(alt_text="flex_menu", contents=FlexContainer.from_json(group_flex_menu(groupId)))
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
@@ -181,10 +183,44 @@ async def handle_callback(request: Request):
 async def submit(request: Request):
     global received_data
     data = await request.form()
-    received_data = data["data"]
-    print("Received message:", received_data)
+    print(f"raw data: {data}")
+    received_data.append(data["data"])
+    groupId = data["groupId"]
+    print(f'id: {groupId}')
+    print("Received message: ", received_data)
+    # send a push message to the group
+    await line_bot_api.push_message(push_message_request=PushMessageRequest(
+        to=groupId,
+        messages=[TextMessage(text=msg) for msg in received_data]
+    ))
+    received_data = []
+    html_content = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <style>
+            /* 改進網頁布局，使其更適合手機 */
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f1f1f1;
+                padding: 20px;
+                text-align: center;
+            }
 
-    return {"message": received_data}
+            p {
+                font-weight: bold;
+                font-size: 4vw; /* 調整文字大小相對於視口寬度，根據需要進行更改 */
+            }
+        </style>
+        </head>
+        <body>
+            <p>成功送出！</p>
+            <p>請回到LINE聊天室點擊匿名發言，讓機器人幫你告訴大家！</p>
+        </body>
+        </html>
+
+    """
+    return HTMLResponse(content=html_content)
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', default=8080))
