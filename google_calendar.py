@@ -44,10 +44,10 @@ class CalendarTool(BaseTool):
     
     def create_gcal_url(
             self,
-            title="請重新輸入",
+            title="梅竹黑客松",
             dates='20231019T180000/20231019T220000',
             location='國立清華大學',
-            description="無"):
+            description="為期兩日的Coding黑客松"):
         base_url = "https://www.google.com/calendar/render?action=TEMPLATE"
         event_url = f"{base_url}&text={parse.quote(title)}&dates={dates}&location={parse.quote(location)}&details={parse.quote(description)}"
         
