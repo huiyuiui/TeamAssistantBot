@@ -41,7 +41,7 @@ from schedule import ScheduleTool
 from search_info import SearchInfoTool
 from summarizer import SummarizeTool
 
-import csv
+from time import time
 from datetime import datetime
 from collections import deque
 
@@ -73,10 +73,9 @@ parser = WebhookParser(channel_secret)
 # Langchain (you must use 0613 model to use OpenAI functions.)
 model = ChatOpenAI(model="gpt-3.5-turbo-0613")
 tools = [
-    StockPriceTool(), StockPercentageChangeTool(),
-    StockGetBestPerformingTool(), FindYoutubeVideoTool(),
-    WikiTool(), CalendarTool(), ScheduleTool(),
-    SummarizeTool(), SearchInfoTool()
+    SummarizeTool(),StockPriceTool(), StockPercentageChangeTool(),
+    StockGetBestPerformingTool(), FindYoutubeVideoTool(), SearchInfoTool(),
+    WikiTool(), CalendarTool(), ScheduleTool()
 ]
 system_message = SystemMessage(content="""
                                 如果回答有出現中文，你傾向使用繁體中文回答問題。
@@ -104,11 +103,17 @@ async def handle_callback(request: Request):
 
     for event in events:
         print(event)
-        await write_message(event)
+        
         if not isinstance(event, MessageEvent):
             continue
         if not isinstance(event.message, TextMessageContent):
             continue
+
+        if event.type == "join":
+            time.sleep(3)
+            await print_self_introduction(event)
+        elif event.type == "message":
+            await write_message(event)
         # await line_bot_api.push_message(push_message_request=PushMessageRequest(
         #     to=event.source.user_id,
         #     messages=[TextMessage(text=event.message.text,
@@ -117,13 +122,15 @@ async def handle_callback(request: Request):
 
         line_bot_name = "森森"
         if f"{line_bot_name}" in event.message.text:
-            if event.message.text.find("summary") != -1:
+            if "統整" in event.message.text or "summary" in event.message.text:
                 print("SUM")
                 root = f"messages/message_content_{event.source.group_id}.txt"
+                
                 with open(root, 'r', encoding="utf-8") as f:
                     messages = f.readlines()
                     print(messages)
                     tool_result = open_ai_agent.run(messages)
+                    
             
             else:
                 tool_result = open_ai_agent.run(event.message.text)
@@ -131,7 +138,7 @@ async def handle_callback(request: Request):
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text=tool_result)]
+                    messages=[TextMessage(text=tool_result, quoteToken=event.message.quote_token)]
                 )
             )
 
@@ -139,11 +146,13 @@ async def handle_callback(request: Request):
 
 async def write_message(event):
     root = f"messages/message_content_{event.source.group_id}.txt"
-    with open(root, 'r', encoding="utf-8") as f:
-        messages = f.readlines()
-        message_queue = deque(messages, maxlen=25)
-
-    if event.message.type != "text":
+    if os.path.exists(root):
+        with open(root, 'r', encoding="utf-8") as f:
+            messages = f.readlines()
+            message_queue = deque(messages, maxlen=25)
+    else:
+        message_queue = deque([], maxlen = 25)
+    if event.type != "message" or event.message.type != "text":
         return
     elif event.message.text.find("森森") != -1:
         return
@@ -158,6 +167,13 @@ async def write_message(event):
     with open(root, 'w', encoding="utf-8") as f:
         f.writelines(message_queue)
 
+
+async def print_self_introduction(event):
+    print("Self intro typing...")
+    await line_bot_api.push_message(push_message_request=PushMessageRequest(
+        to=event.source.group_id,
+        messages=[TextMessage(text="我來了！")],
+    ))
     
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', default=8080))
