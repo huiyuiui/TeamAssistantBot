@@ -17,8 +17,13 @@ from linebot.v3.messaging import (
     ReplyMessageRequest,
     PushMessageRequest,
     TextMessage,
-    StickerMessage
+    StickerMessage,
+    FlexMessage,
+    FlexContainer
 )
+
+from flex_menu import flex_menu
+
 from linebot.v3.exceptions import (
     InvalidSignatureError
 )
@@ -98,13 +103,35 @@ async def handle_callback(request: Request):
 
     for event in events:
         print(event)
-        if(event.type == 'postback' and event.postback.data == 'action=reminder'):
+        if(event.type == 'message' and event.message.text == 'K'):
             await line_bot_api.reply_message(
-            ReplyMessageRequest(
+                ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text='去做事好嗎'), StickerMessage(package_id='11537', sticker_id='52002744')]
+                    messages = [flex_menu]
                 )
             )
+            continue
+        if(event.type == 'postback' and event.postback.data == 'action=reminder'):
+            # Reminder_text[10] = {'去做事好嗎', ''}
+            # reminder_test
+            from linebot import LineBotApi
+            line_bot_api_K = LineBotApi(channel_access_token)
+
+            try:
+                print(event.source.user_id)
+                profile = line_bot_api_K.get_profile(event.source.user_id)
+                print(event.source.groupId)
+                # print(line_bot_api_K.get_profile(event.source.groupId))
+                print(profile.display_name)
+            except Exception as e:
+                print("NONONO")
+
+            await line_bot_api.reply_message(
+                ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text='去做事好嗎'), StickerMessage(package_id='11537', sticker_id='52002744')]
+                    )
+                )
             continue
         if not isinstance(event, MessageEvent):
             continue
@@ -143,8 +170,6 @@ async def submit(request: Request):
     print("Received message:", received_data)
 
     return {"message": received_data}
-
-import rich_menu
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', default=8080))

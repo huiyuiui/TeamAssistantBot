@@ -36,11 +36,11 @@ body = {
   }
 
 #刪除之前的richmenu
-# richmeun = requests.request('GET', 'https://api.line.me/v2/bot/richmenu/list', headers=headers)
-# for i in richmeun.json()['richmenus']:
-#     requests.request('DELETE', f'https://api.line.me/v2/bot/richmenu/{i["richMenuId"]}', headers=headers)
+richmeun = requests.request('GET', 'https://api.line.me/v2/bot/richmenu/list', headers=headers)
+for i in richmeun.json()['richmenus']:
+    requests.request('DELETE', f'https://api.line.me/v2/bot/richmenu/{i["richMenuId"]}', headers=headers)
 
-# print(richmeun.json())
+print(richmeun.json())
 # 向指定網址發送 request
 richmeun = requests.request('POST', 'https://api.line.me/v2/bot/richmenu',
                       headers=headers, data=json.dumps(body).encode('utf-8'))
