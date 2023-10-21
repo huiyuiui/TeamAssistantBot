@@ -36,7 +36,7 @@ from langchain.chat_models import ChatOpenAI
 from wikipedia import WikiTool
 from youtube_restaurant import FindYoutubeVideoTool
 from google_calendar import CalendarTool
-
+from imgurpython import ImgurClient
 logging.basicConfig(level=os.getenv('LOG', 'WARNING'))
 logger = logging.getLogger(__file__)
 
