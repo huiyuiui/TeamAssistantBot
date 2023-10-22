@@ -21,7 +21,9 @@ class MeetingInput(BaseModel):
 
 class MeetingTool(BaseTool):
     name = "group_meeting_time_generator"
-    description = f"Give all the specific possible meeting times, consider the available time of all group members when seeing 'meeting time summary'."
+    description = f"""Arange the meeting time.
+    Give all the specific possible meeting times that user can have a meeting, consider the available time of all group members when seeing 'meeting time summary'.
+    """
 
     def _run(self, meeting_period: str, meeting_time: str):
         print('meeting_time:', meeting_time)

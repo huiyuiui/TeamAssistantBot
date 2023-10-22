@@ -29,6 +29,8 @@ stock_peformace.py
 stock_price.py
 stock_tool.py
 yf_tool.py
+messages/
+todo_lists/
 
 #K's inv
 LINE/
