@@ -128,7 +128,10 @@ async def handle_callback(request: Request):
         print(event)
         # join event
         if(event.type == 'join'):
-            groupId = event.source.group_id
+            if(event.source.type=='group'):
+                groupId = event.source.group_id
+            else:
+                groupId = 0
             flex_menu = FlexMessage(alt_text="flex_menu", contents=FlexContainer.from_json(group_flex_menu(groupId)))
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
@@ -137,10 +140,12 @@ async def handle_callback(request: Request):
                 )
             )
             continue
-            continue
         # Flex menu
         if(event.type == 'message' and event.message.text == '森森'):
-            groupId = event.source.group_id
+            if(event.source.type=='group'):
+                groupId = event.source.group_id
+            else:
+                groupId = 0
             flex_menu = FlexMessage(alt_text="flex_menu", contents=FlexContainer.from_json(group_flex_menu(groupId)))
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
@@ -151,19 +156,37 @@ async def handle_callback(request: Request):
             continue
         # Reminder
         if(event.type == 'postback' and event.postback.data == 'action=reminder'):
-            if os.path.exists(f"todo_lists/todo_list_{event.source.group_id}.json"):
-                Globals.read_todo_from_file(event.source.group_id)
-            tool_result = open_ai_agent.run('森森查看目前代辦清單')
-
+            if(event.source.type=='group'):
+                if os.path.exists(f"todo_lists/todo_list_{event.source.group_id}.json"):
+                    Globals.read_todo_from_file(event.source.group_id)
+                tool_result = open_ai_agent.run('森森查看目前代辦清單')
+            else:
+                tool_result = "請在群組中使用此功能喔！"
             Rtext, Rpackage_id, Rsticker_id = Random_textandsticker()
-            await line_bot_api.reply_message(
-                ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text=Rtext), StickerMessage(package_id=Rpackage_id, sticker_id=Rsticker_id), TextMessage(text=tool_result)]
+            if(event.source.type=='group'):
+                await line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=Rtext), StickerMessage(package_id=Rpackage_id, sticker_id=Rsticker_id), TextMessage(text=tool_result)]
+                        )
                     )
-                )
+            else:
+                await line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=Rtext), StickerMessage(package_id=Rpackage_id, sticker_id=Rsticker_id)]
+                        )
+                    )
             continue
         if(event.type == 'postback' and event.postback.data == 'action=sumerise'):
+            if(event.source.type!='group'):
+                await line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text="請在群組中使用此功能喔！")]
+                        )
+                    )
+                continue
             root = f"messages/message_content_{event.source.group_id}.txt"
             with open(root, 'r', encoding="utf-8") as f:
                 messages = f.readlines()
