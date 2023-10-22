@@ -55,7 +55,7 @@ def group_flex_menu(group_id: str):
                 "action": {{
                 "type": "uri",
                 "label": "悄悄話",
-                "uri": "https://mc-hackathon-20231021.web.app/?id={group_id}"
+                "uri": "https://hackathonlinebot.web.app/?id={group_id}"
                 }}
             }},
             {{
@@ -64,7 +64,7 @@ def group_flex_menu(group_id: str):
                 "height": "sm",
                 "action": {{
                 "type": "postback",
-                "label": "來抱抱",
+                "label": "懶貓包",
                 "data": "action=sumerise"
                 }}
             }}
