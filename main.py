@@ -54,6 +54,7 @@ from todo_list import TodoListTool
 from mood_tool import MoodAnalyzerTool
 
 from random_reminder import Random_textandsticker
+from typing import Dict
 
 
 import Globals
@@ -127,12 +128,15 @@ async def handle_callback(request: Request):
         print(event)
         # join event
         if(event.type == 'join'):
+            groupId = event.source.group_id
+            flex_menu = FlexMessage(alt_text="flex_menu", contents=FlexContainer.from_json(group_flex_menu(groupId)))
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text='我是森森，是一隻貓貓助手，有什麼問題都可以問我喔！')]
+                    messages = [flex_menu]
                 )
             )
+            continue
             continue
         # Flex menu
         if(event.type == 'message' and event.message.text == '森森'):
@@ -147,32 +151,33 @@ async def handle_callback(request: Request):
             continue
         # Reminder
         if(event.type == 'postback' and event.postback.data == 'action=reminder'):
+            if os.path.exists(f"todo_lists/todo_list_{event.source.group_id}.json"):
+                Globals.read_todo_from_file(event.source.group_id)
+            tool_result = open_ai_agent.run('森森查看目前代辦清單')
+
             Rtext, Rpackage_id, Rsticker_id = Random_textandsticker()
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
                         reply_token=event.reply_token,
-                        messages=[TextMessage(text=Rtext), StickerMessage(package_id=Rpackage_id, sticker_id=Rsticker_id)]
+                        messages=[TextMessage(text=Rtext), StickerMessage(package_id=Rpackage_id, sticker_id=Rsticker_id), TextMessage(text=tool_result)]
                     )
                 )
             continue
         if(event.type == 'postback' and event.postback.data == 'action=sumerise'):
-            Rtext, Rpackage_id, Rsticker_id = Random_textandsticker()
-            await line_bot_api.reply_message(
-                ReplyMessageRequest(
+            root = f"messages/message_content_{event.source.group_id}.txt"
+            with open(root, 'r', encoding="utf-8") as f:
+                messages = f.readlines()
+                print(messages)
+                tool_result = open_ai_agent.run(messages)
+                with open(root, 'w', encoding="utf-8") as f:
+                    f.write("") 
+                await line_bot_api.reply_message(
+                    ReplyMessageRequest(
                         reply_token=event.reply_token,
-                        messages=[TextMessage(text='陳家輝的code接到這裡')]
+                        messages=[TextMessage(text=tool_result)]
                     )
                 )
             continue
-        # if is group and the text is "匿名連結", the send a url with group id
-        if (event.source.type == 'group' and event.message.text == '匿名連結'):
-            groupId = event.source.group_id
-            await line_bot_api.reply_message(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text='https://mc-hackathon-20231021.web.app/?id=' + groupId)]
-                )
-            )
         
         # Undefine check
         if not isinstance(event, MessageEvent):
