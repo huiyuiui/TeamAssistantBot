@@ -9,6 +9,7 @@ if os.getenv('API_ENV') != 'production':
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from linebot.v3.webhook import WebhookParser
 from linebot.v3.messaging import (
     AsyncApiClient,
@@ -18,19 +19,21 @@ from linebot.v3.messaging import (
     PushMessageRequest,
     TextMessage,
     ImageMessage,
-    StickerMessage
+    StickerMessage,
+    FlexMessage,
+    FlexContainer
 )
+
+from flex_menu import group_flex_menu
+
 from linebot.v3.exceptions import (
     InvalidSignatureError
 )
 from linebot.v3.webhooks import (
     MessageEvent,
-    TextMessageContent,
-    PostbackEvent
+    TextMessageContent
 )
 
-from stock_peformace import StockPercentageChangeTool, StockGetBestPerformingTool
-from stock_price import StockPriceTool
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from langchain.agents import initialize_agent, Tool
 from langchain.agents import AgentType
@@ -41,6 +44,7 @@ from google_calendar import CalendarTool
 from schedule import ScheduleTool
 from search_info import SearchInfoTool
 from summarizer import SummarizeTool
+from meeting_arangement import MeetingTool
 
 from time import time
 from datetime import datetime
@@ -77,9 +81,9 @@ parser = WebhookParser(channel_secret)
 # Langchain (you must use 0613 model to use OpenAI functions.)
 model = ChatOpenAI(model="gpt-3.5-turbo-0613")
 tools = [
-    TodoListTool(), ScheduleTool(), CalendarTool(), 
-    SearchInfoTool(), WikiTool(), 
-    SummarizeTool(), FindYoutubeVideoTool()
+    SearchInfoTool(), WikiTool(), MeetingTool(),
+    SummarizeTool(), FindYoutubeVideoTool(),
+    ScheduleTool(), CalendarTool(), TodoListTool()
 ]
 system_message = SystemMessage(content="""
                                你叫做森森，你是一隻貓，你會友善的回覆使用者的任何問題，
@@ -94,10 +98,10 @@ open_ai_agent = initialize_agent(
 
 # collect previous message
 message_list = []
-received_data = ""
-
+received_data = []
 @app.post("/webhooks/line")
 async def handle_callback(request: Request):
+    global message_list
     signature = request.headers['X-Line-Signature']
 
     # get request body as text
@@ -111,28 +115,82 @@ async def handle_callback(request: Request):
 
     for event in events:
         print(event)
-        if(event.type == 'postback' and event.postback.data == 'action=reminder'):
+        # join event
+        if(event.type == 'join'):
             await line_bot_api.reply_message(
-            ReplyMessageRequest(
+                ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text='去做事好嗎'), StickerMessage(package_id='11537', sticker_id='52002744')]
+                    messages=[TextMessage(text='我是森森，是一隻貓貓助手，有什麼問題都可以問我喔！')]
                 )
             )
             continue
+        # Flex menu
+        if(event.type == 'message' and event.message.text == '森森'):
+            groupId = event.source.group_id
+            flex_menu = FlexMessage(alt_text="flex_menu", contents=FlexContainer.from_json(group_flex_menu(groupId)))
+            await line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages = [flex_menu]
+                )
+            )
+            continue
+        # Reminder
+        if(event.type == 'postback' and event.postback.data == 'action=reminder'):
+            # Reminder_text[10] = {'去做事好嗎', ''}
+            # reminder_test
+            from linebot import LineBotApi
+            line_bot_api_K = LineBotApi(channel_access_token)
+
+            try:
+                print(event.source.user_id)
+                profile = line_bot_api_K.get_profile(event.source.user_id)
+                print(event.source.groupId)
+                # print(line_bot_api_K.get_profile(event.source.groupId))
+                print(profile.display_name)
+            except Exception as e:
+                print("NONONO")
+
+            await line_bot_api.reply_message(
+                ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text='去做事好嗎'), StickerMessage(package_id='11537', sticker_id='52002744')]
+                    )
+                )
+            continue
+        # if is group and the text is "匿名連結", the send a url with group id
+        if (event.source.type == 'group' and event.message.text == '匿名連結'):
+            groupId = event.source.group_id
+            await line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text='https://mc-hackathon-20231021.web.app/?id=' + groupId)]
+                )
+            )
         
+        # Undefine check
         if not isinstance(event, MessageEvent):
             continue
         if not isinstance(event.message, TextMessageContent):
             continue
 
-        if event.type == "message":
-            await write_message(event)
+        # if event.type == "join":
+        #     time.sleep(3)
+        #     await print_self_introduction(event)
+        # elif event.type == "message":
+        #     await write_message(event)
+        
         # await line_bot_api.push_message(push_message_request=PushMessageRequest(
         #     to=event.source.user_id,
         #     messages=[TextMessage(text=event.message.text,
         #                           quoteToken=event.message.quote_token)],
         # ))
 
+        # Record message(can only be used in group)
+        if event.type == "message":
+            await write_message(event)
+
+        # Keyword trigger operation
         line_bot_name = "森森"
         if f"{line_bot_name}" in event.message.text:
             if "統整" in event.message.text or "summary" in event.message.text:
@@ -142,8 +200,31 @@ async def handle_callback(request: Request):
                     messages = f.readlines()
                     print(messages)
                     tool_result = open_ai_agent.run(messages)
-                    
-            
+                    with open(root, 'w', encoding="utf-8") as f:
+                        f.write("") 
+                    await line_bot_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=tool_result)]
+                        )
+                    )
+
+            elif "什麼時候開會" in event.message.text or "when to meet" in event.message.text:
+                print("MEET")
+                root = f"messages/message_content_{event.source.group_id}.txt"
+                with open(root, 'r', encoding="utf-8") as f:
+                    messages = f.readlines()
+                    print(messages)
+                    tool_result = open_ai_agent.run(messages)
+                    with open(root, 'w', encoding="utf-8") as f:
+                        f.write("") 
+                    print(tool_result)
+                    await line_bot_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=tool_result)]
+                        )
+                    )
             else:
                 if os.path.exists(f"todo_lists/todo_list_{event.source.group_id}.json"):
                     Globals.read_todo_from_file(event.source.group_id)
@@ -162,11 +243,11 @@ async def handle_callback(request: Request):
                     )
                 else :
                     await line_bot_api.reply_message(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text=tool_result)]
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=tool_result)]
+                        )
                     )
-                )
                     
                 Globals.write_todo_to_file(event.source.group_id)
             
@@ -219,13 +300,45 @@ def write_sensen_message(group_id: int, text: str):
 # get web data
 @app.post("/submit")
 async def submit(request: Request):
+    global received_data
     data = await request.form()
-    received_data = data["data"]
-    print("Received message:", received_data)
+    print(f"raw data: {data}")
+    received_data.append(data["data"])
+    groupId = data["groupId"]
+    print(f'id: {groupId}')
+    print("Received message: ", received_data)
+    # send a push message to the group
+    await line_bot_api.push_message(push_message_request=PushMessageRequest(
+        to=groupId,
+        messages=[TextMessage(text=msg) for msg in received_data]
+    ))
+    received_data = []
+    html_content = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f1f1f1;
+                padding: 20px;
+                text-align: center;
+            }
 
-    return {"message": received_data}
+            p {
+                font-weight: bold;
+                font-size: 4vw; 
+            }
+        </style>
+        </head>
+        <body>
+            <p>成功送出！</p>
+            <p>請回到LINE聊天室點擊匿名發言，讓機器人幫你告訴大家！</p>
+        </body>
+        </html>
 
-import rich_menu
+    """
+    return HTMLResponse(content=html_content)
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', default=8080))

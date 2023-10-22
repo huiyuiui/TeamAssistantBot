@@ -28,7 +28,7 @@ class TodoListTool(BaseTool):
     name = "todo_list_manager"
     description = f"""
     Manage a to-do list for users.
-    Input should contain one of the following operations: add, complete and check.
+    Input should contain one of the following operations: , addcomplete and check.
     """
     global_todo_list: Dict[str, bool] = Globals.get_todo_list()
     #global_todo_list: Dict[str, bool] = {}
