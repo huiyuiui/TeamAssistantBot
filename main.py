@@ -170,7 +170,7 @@ async def handle_callback(request: Request):
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text='https://mc-hackathon-20231021.web.app/?id=' + groupId)]
+                    messages=[TextMessage(text='https://hackathonlinebot.web.app/?id=' + groupId)]
                 )
             )
         

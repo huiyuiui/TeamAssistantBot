@@ -15,13 +15,13 @@ class MeetingInput(BaseModel):
     )
     meeting_time: str = Field(
         ...,
-        description="The time period and the user specify whether he/she is free or tied up.")
+        description="The time period and the user specify whether he/she is available or not.")
 
     
 
 class MeetingTool(BaseTool):
     name = "group_meeting_time_generator"
-    description = f"Give the specific possible meeting times according to the available time share by the group members when seeing 'meeting time summery'."
+    description = f"Give all the specific possible meeting times, consider the available time of all group members when seeing 'meeting time summary'."
 
     def _run(self, meeting_period: str, meeting_time: str):
         print('meeting_time:', meeting_time)
