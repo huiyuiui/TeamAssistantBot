@@ -79,7 +79,7 @@ model = ChatOpenAI(model="gpt-3.5-turbo-0613")
 tools = [
     TodoListTool(), ScheduleTool(), CalendarTool(), 
     SearchInfoTool(), WikiTool(), 
-    SummarizeTool(), FindYoutubeVideoTool(),
+    SummarizeTool(), FindYoutubeVideoTool()
 ]
 system_message = SystemMessage(content="""
                                你叫做森森，你是一隻貓，你會友善的回覆使用者的任何問題，
